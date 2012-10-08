@@ -1,0 +1,73 @@
+These are the exact same results as hasqi027, which is saved to
+/Users/abbiekre/Documents/MATLAB/Data/20111014_HasqiWithKatesAddLogToLinForQlin/results.mat.
+
+Note that the diff between hasqi028 and hasqi027 is just that hasqi027 does the
+log to lin conversion as 10^((dB-refLevel)/20), and hasqi028 does the log to
+lin conversion as 10^(dB/20).  The refLevel subtraction doesn't make a
+difference because of the rms-normalization step after the conversion (see
+proof below).
+
+	>> x=[60 70 80];
+	>> withref=10.^((x-65)./20);
+	>> withoutref=10.^(x./20);
+	>> withref=withref./rms(withref);
+	>> withoutref=withoutref./rms(withoutref);
+	>> withref
+
+	withref =
+
+			 0.164398987305357         0.519875244910036          1.64398987305357
+
+	>> withoutref
+
+	withoutref =
+
+			 0.164398987305357         0.519875244910036          1.64398987305357
+
+
+
+
+
+-----> MATLAB SIMULATION CODE <-----
+>> cd ~/Documents/MATLAB/ObjectiveMeasures
+>> addpaths_hasqi
+>> [qnonlin,qlin,hasqi,cxy,d1,d2]=computeHasqiWithKatesModel;
+Total runtime: 1 hour, 1 min, 11.8 secs
+
+>> load ~/sym/HuLoizouSubj.mat
+>> hasqi_subset=mean(hasqi([1:2 4:15],:,:,:),4);
+>> [r_p,stde]=pearson(hasqi_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.842199920061095
+
+
+stde =
+
+         0.251605703581102
+
+>> qlin_subset=mean(qlin([1 2 4:end],:,:,:),4);
+>> [r_p,stde]=pearson(qlin_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.674031374457497
+
+
+stde =
+
+         0.344721356475944
+
+>> qnonlin_subset=mean(qnonlin([1 2 4:end],:,:,:),4);
+>> [r_p,stde]=pearson(qnonlin_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.848263249152893
+
+
+stde =
+
+         0.247130186519694
+

@@ -1,0 +1,9 @@
+Started Friday around 7pm (9/9). Finished around 02:45 on Sunday (9/11).  Let's
+say it took about 31.75 hours. (Restarted computer before getting printed text
+to the  matlab command window.)
+
+Note that I initially forgot to include the clean wav files since they were
+within a clean folder in ~/sym/Dynastat on akressner (whereas they are not
+nested in a folder on cortex where I ran this code last time).
+
+Mat files saved to 20110909_DynastatNeurograms79dB_8msWindows

@@ -1,0 +1,51 @@
+--> SUMMARY <--
+Total runtime: 2 mins, 58.0 secs
+			r (Carney model with 8ms windows)
+hasqi		0.8202
+qnonlin		0.8476
+qlin		0.3830
+
+
+--> MATLAB SESSION <--
+>> cd ~/Documents/MATLAB/ObjectiveMeasures/
+>> addpaths_hasqi
+>> [qnonlin,qlin,hasqi,cxy,d1,d2]=computeHasqiFromCarneyNeurograms('/Users/abbiekre/Documents/MATLAB/Data/20110909_DynastatNeurograms79dB_8msWindows/');
+>> hasqi_subset=hasqi([1:2 4:15],:,:);
+>> load ~/sym/HuLoizouSubj.mat
+>> [r_p,stde]=pearson(hasqi_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.820155952963276
+
+
+stde =   
+
+         0.266993584801081
+
+>> qnonlin_subset=qnonlin([1:2 4:15],:,:);
+>> [r_p,stde]=pearson(qnonlin_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.847561863173099
+
+
+stde =   
+
+         0.247653690019252
+
+>> qlin_subset=qlin([1:2 4:15],:,:);
+>> [r_p,stde]=pearson(qlin_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.383041161341383
+
+
+stde =   
+
+         0.431066368432888
+
+>> mkdir ~/Documents/MATLAB/Data/20110912_HasqiWithCarney_8msWindows
+>> save('~/Documents/MATLAB/Data/20110912_HasqiWithCarney_8msWindows/hasqiResults.mat');

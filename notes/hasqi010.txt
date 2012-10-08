@@ -1,0 +1,11 @@
+>> startJob_computeQualmetricForLoizouData;
+>> out=getAllOutputArguments(job);
+>> qnonlin=out{1};qlin=out{2};hasqi=out{3};cxy=out{4};
+>> save('/Volumes/abbieWD2_Data/hasqiLoizouData/usingKatesCodeWithCarneyModel/usingVihc/resamp8to100_correctAmplitude_usingVihcDirectly_nchan32choppedTo25.mat','qnonlin','qlin','hasqi','cxy');
+>> hasqi_subset=hasqi([1 2 4:15],:,:);
+>> [r,stde]=pearson(hasqi_subset(:),subjRawNoNormalization_subset(:))
+
+r =
+        0.772404796017148
+stde =
+		0.296388605978557

@@ -1,0 +1,65 @@
+>> getSpearmanOfLoizouStandard(@comp_snr)
+ans =
+
+0.319332112158481
+
+>> getSpearmanOfLoizouStandard(@comp_wss)
+
+ans =
+
+-0.675945764665538
+
+>> getSpearmanOfLoizouStandard(@pesq)
+
+ans =
+
+0.878995180569516
+
+>> getSpearmanOfLoizouStandard(@comp_llr)
+
+ans =
+
+-0.868077259266702
+
+>> getSpearmanOfLoizouStandard(@comp_is)
+
+ans =
+
+-0.616738680479972
+
+>> getSpearmanOfLoizouStandard(@comp_cep)
+
+ans =
+
+-0.844246632135091
+
+>> getSpearmanOfLoizouStandard(@comp_fwseg) % K=13
+
+ans =
+
+0.849163113911123
+
+>> getSpearmanOfLoizouStandard(@comp_fwseg) % << K=25
+
+ans =
+
+0.839616340001972
+
+>> corr(hasqi_subset(:),subjRawNoNormalization_subset(:),'type','Spearman')
+
+ans =
+
+0.805017293619815
+
+>> corr(cxy_subset(:),subjRawNoNormalization_subset(:),'type','Spearman')
+
+ans =
+
+0.802996880170585
+
+>> save('~/Dropbox/Abbies-files/pemoqScores.mat','unsortedPemoQ','sortedPemoQ','sortedPemoQ_subset');
+>> corr(sortedPemoQ_subset(:),subjRawNoNormalization_subset(:),'type','Spearman')
+
+ans =
+
+0.206453791208495

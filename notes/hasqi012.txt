@@ -1,0 +1,58 @@
+>> [r,stde]=getCorrCoeffStdeOfLoizouStandard(@comp_snr)
+r =
+	0.482994998975999
+stde =
+	0.408616319854374
+
+======================================================
+After switching the outputs of the comp_snr function so
+that I was taking the segmentalSNR rather than the
+overall snr, I now get the following...
+>> [r,stde]=getCorrCoeffStdeOfLoizouStandard(@comp_snr)
+r =
+	0.360987649944466
+stde =
+	0.435191306116467
+======================================================
+
+>> [r,stde]=getCorrCoeffStdeOfLoizouStandard(@comp_wss)
+r =
+	-0.64059804205794
+stde =
+	0.358335476165426
+
+>> [r,stde]=getCorrCoeffStdeOfLoizouStandard(@pesq)
+r =
+	0.888794632291628
+stde =
+	0.213871905075339
+
+>> [r,stde]=getCorrCoeffStdeOfLoizouStandard(@comp_llr)
+r =
+	-0.862985021476328
+stde =
+	0.235769269477359
+
+>> [r,stde]=getCorrCoeffStdeOfLoizouStandard(@comp_is)
+r =
+	-0.596615908220811
+stde =
+	0.374505415667652
+
+>> [r,stde]=getCorrCoeffStdeOfLoizouStandard(@comp_cep)
+r =
+	-0.831790954159698
+stde =
+	0.259036594254387
+
+>> [r,stde]=getCorrCoeffStdeOfLoizouStandard(@comp_fwseg) ==> NOTE: this was with k=13
+r =
+	0.851602661704588
+stde =
+	0.244616330308766
+
+>> [r,stde]=getCorrCoeffStdeOfLoizouStandard(@comp_fwseg) ==> NOTE: this was with k=25
+r =
+	0.844341137762135
+stde =
+	0.250038016610263

@@ -1,0 +1,107 @@
+>> [qnonlin,qlin,hasqi,cxy,d1,d2]=computeQualmetricForLoizouData('~/Data/20110711_DynastatNeurograms/');
+
+--> Starting sp01 (18-Jul-2011 15:13:05)
+        Runtime: 6.8 secs
+
+--> Starting sp02 (18-Jul-2011 15:13:12)
+        Runtime: 6.7 secs
+
+--> Starting sp03 (18-Jul-2011 15:13:19)
+        Runtime: 6.6 secs
+
+--> Starting sp04 (18-Jul-2011 15:13:25)
+        Runtime: 6.6 secs
+
+--> Starting sp06 (18-Jul-2011 15:13:32)
+        Runtime: 6.7 secs
+
+--> Starting sp07 (18-Jul-2011 15:13:38)
+        Runtime: 6.7 secs
+
+--> Starting sp08 (18-Jul-2011 15:13:45)
+        Runtime: 7.3 secs
+
+--> Starting sp09 (18-Jul-2011 15:13:53)
+        Runtime: 7.5 secs
+
+--> Starting sp11 (18-Jul-2011 15:14:00)
+        Runtime: 7.5 secs
+
+--> Starting sp12 (18-Jul-2011 15:14:08)
+        Runtime: 7.4 secs
+
+--> Starting sp13 (18-Jul-2011 15:14:15)
+        Runtime: 7.4 secs
+
+--> Starting sp14 (18-Jul-2011 15:14:22)
+        Runtime: 7.5 secs
+
+--> Starting sp16 (18-Jul-2011 15:14:30)
+        Runtime: 7.2 secs
+
+--> Starting sp17 (18-Jul-2011 15:14:37)
+        Runtime: 7.4 secs
+
+--> Starting sp18 (18-Jul-2011 15:14:44)
+        Runtime: 7.3 secs
+
+--> Starting sp19 (18-Jul-2011 15:14:52)
+        Runtime: 7.4 secs
+
+ Total runtime: 1 min, 54.7 secs
+
+>> whos
+  Name          Size             Bytes  Class     Attributes
+
+  cxy          15x2x4              960  double              
+  d1           15x2x4              960  double              
+  d2           15x2x4              960  double              
+  hasqi        15x2x4              960  double              
+  qlin         15x2x4              960  double              
+  qnonlin      15x2x4              960  double              
+
+>> save('~/Data/20110718_DynastatHasqi/hasqiCarneyNeurograms.mat');
+
+>> load ~/Data/subj_noNormalizeRaw_correctSubset.mat
+>> whos
+  Name                                Size             Bytes  Class     Attributes
+
+  cxy                                15x2x4              960  double              
+  d1                                 15x2x4              960  double              
+  d2                                 15x2x4              960  double              
+  hasqi                              15x2x4              960  double              
+  qlin                               15x2x4              960  double              
+  qnonlin                            15x2x4              960  double              
+  subjRawNoNormalization_subset      14x2x4              896  double              
+
+>> hasqi_subset=hasqi([1:2 4:15],:,:);                                    
+>> which pearson     
+/home/abbiekre/ObjectiveMeasures/pearson.m
+>> [r,stde]=pearson(hasqi_subset(:),subjRawNoNormalization_subset(:)) 
+
+r =
+
+    0.7307
+
+
+stde =
+
+    0.3186
+
+>> cxy_subset=cxy([1:2 4:15],:,:);                                   
+>> [r,stde]=pearson(cxy_subset(:),subjRawNoNormalization_subset(:))  
+
+r =
+
+    0.7552
+
+
+stde =
+
+    0.3059
+
+>> rho=corr(hasqi_subset(:),subjRawNoNormalization_subset(:),'Type','Spearman') 
+
+rho =
+
+    0.7006

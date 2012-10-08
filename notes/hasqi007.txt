@@ -1,0 +1,38 @@
+Runtime: 0 days 20h 37m 9s
+
+---- MATLAB ----
+>> addpath('~/Documents/MATLAB/ObjectiveMeasures/HASQI/analysisAndPlottingTools/');
+>> [r,ste]=calcCorrelation('/Volumes/abbieWD2_Data/hasqiLoizouData/usingKatesCodeWithCarneyModel/usingVihc/carneyModel_noResamp_vihcAmpAdjusted_nchan32choppedTo25.mat','/Volumes/abbieWD2_Data/hasqiLoizouData/subjective/subj_normalizeRawOvrlToZeroAndOne.mat','cxy')
+
+r =
+
+         0.594541713523051
+
+ste =
+
+         0.113841916204195
+
+>> [r,ste]=calcCorrelation('/Volumes/abbieWD2_Data/hasqiLoizouData/usingKatesCodeWithCarneyModel/usingVihc/carneyModel_noResamp_vihcAmpAdjusted_nchan32choppedTo25.mat','/Volumes/abbieWD2_Data/hasqiLoizouData/subjective/subj_normalizeRawOvrlToZeroAndOne.mat','hasqi')
+
+r =
+
+         0.624705701308033
+
+ste =
+
+         0.110556555688134
+
+>> [r,ste]=calcCorrelation('/Volumes/abbieWD2_Data/hasqiLoizouData/usingKatesCodeWithCarneyModel/usingVihc/carneyModel_noResamp_vihcAmpAdjusted_nchan32choppedTo25.mat','/Volumes/abbieWD2_Data/hasqiLoizouData/subjective/subj_normalizeRawOvrlByZscoresPerSubjAndExp.mat','hasqi')
+
+r =
+
+         0.629414062767368
+
+ste =
+
+         0.431972146255408
+---- end MATLAB ----
+
+After some investigation, it is clear that there are two problems with the CarneyVihc method right now.
+1. vihc is not always greater than zero like Kates's is (basically, the Carney model is maintaining the fine temporal structure and Kates just wants the baseband signal)
+2. the amplitude conversion is way off, and I think now, instead of losing info at the 0dB threshold, I am losing it at the high threshold.

@@ -1,0 +1,3439 @@
+commit 984b326e506cb8ac30f8c0bb692cf6d01fa6681c
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Jan 16 16:35:32 2012 -0500
+
+    Taking a look back at training the models.
+
+diff --git a/HASQI/Kates/KatesLinearRegressionModel.m b/HASQI/Kates/KatesLinearRegressionModel.m
+new file mode 100644
+index 0000000..bf55fa4
+--- /dev/null
++++ b/HASQI/Kates/KatesLinearRegressionModel.m
+@@ -0,0 +1,14 @@
++function Linear=KatesLinearRegressionModel(D1,D2,HL)
++
++if nargin<4
++	HL=zeros(6,1); % normal hearing
++end
++
++HL_test=sum(HL); %Test for NH or HI listeners
++if HL_test == 0
++    Linear=(0.939 - 0.376.*D1 - 0.590.*D2)./(0.939);
++else
++    Linear=(0.890 - 0.987.*D1 - 0.000.*D2)./(0.890);
++end
++Linear=max(Linear,0);
++Linear=min(Linear,1);
+diff --git a/HASQI/Kates/KatesNonlinRegressionModel.m b/HASQI/Kates/KatesNonlinRegressionModel.m
+new file mode 100644
+index 0000000..199ff05
+--- /dev/null
++++ b/HASQI/Kates/KatesNonlinRegressionModel.m
+@@ -0,0 +1,28 @@
++function Nonlin=KatesNonlinRegressionModel(cxy,HL)
++
++if nargin<4
++	HL=zeros(6,1); % normal hearing
++end
++originalShape=size(cxy);
++
++HL_test=sum(HL); %Test for NH or HI listeners
++if HL_test == 0
++%   Nonlinear for NH listener
++    cmin=sqrt(0.550/2.284); %Cep Corr that gives minimum of the polynomial fit
++    Qmin=(0.550 - 1.944*cmin + 2.284*cmin*cmin)/(0.550-1.944+2.284); %Match slopes
++	Nonlin(cxy>=cmin)=...
++		(0.550 - 1.944.*cxy(cxy>=cmin) + 2.284.*cxy(cxy>=cmin).*cxy(cxy>=cmin))./...
++		(0.550-1.944+2.284);
++	Nonlin(cxy<cmin)=Qmin.*(cxy(cxy<cmin)./cmin);
++else
++%   Nonlinear for HI listener
++    cmin=sqrt(0.915/3.178); %Cep Corr that gives minimum of the polynomial fit
++    Qmin=(0.915 - 3.349.*cmin + 3.178.*cmin.*cmin)./(0.915-3.349+3.178); %Match slopes
++	Nonlin(cxy>=cmin)=...
++		(0.915 - 3.349.*cxy(cxy>=cmin) + 3.178.*cxy(cxy>=cmin).*cxy(cxy>=cmin))./...
++		(0.915-3.349+3.178);
++	Nonlin(cxy<cmin)=Qmin.*(cxy(cxy<cmin)./cmin);
++end
++Nonlin=max(Nonlin,0);
++Nonlin=min(Nonlin,1);
++Nonlin=reshape(Nonlin,originalShape);
+
+commit f49ce2df8cf21ca23965b7534ab971050b620e1b
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Fri Oct 14 16:50:38 2011 -0400
+
+    Change log to lin conversion to same as Kates (email on 14 Oct 2011).
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index b6efcb9..d8263e2 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -136,8 +136,7 @@ xSL=cochlea_aveSL_2tone(xg,cx,attnOHC,knee,CR,attnIHC,Level1);
+ ySL=cochlea_aveSL_2tone(yg,cy,attnOHC,knee,CR,attnIHC,Level1);
+ 
+ % Moore and Tan spectral difference metric
+-logToLin=@(vec,refLevel) 10.^((vec-refLevel)/20);
+-[D1,D2]=cochlea_Moore_2tone(logToLin(xSL,Level1),logToLin(ySL,Level1),cfreq);
++[D1,D2]=cochlea_Moore_2tone(xSL,ySL,cfreq);
+ 
+ % Compute the nonlinear, linear, and combined metrics
+ HL_test=sum(HL); %Test for NH or HI listeners
+diff --git a/HASQI/Kates/cochlea_Moore_2tone.m b/HASQI/Kates/cochlea_Moore_2tone.m
+index a3214b3..aa7970b 100755
+--- a/HASQI/Kates/cochlea_Moore_2tone.m
++++ b/HASQI/Kates/cochlea_Moore_2tone.m
+@@ -22,6 +22,11 @@ function [D1 D2]=cochlea_Moore_2tone(x,y,cfreq)
+ % Unweighted sum added 5 November 2007.
+ % Version returning stds, 31 August 2008.
+ 
++% Convert decibels to linear magnitude
++logToLin=@(dB) 10.^(dB./20);
++x=logToLin(x);
++y=logToLin(y);
++
+ % Normalize the level of the reference and degraded signals.
+ % This operation removes the absolute signal level as a factor.
+ xRMS=sqrt(sum(x.^2)/length(x));
+
+commit b0891000c5e2825951c809101ea0c6d93523c99a
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Thu Oct 13 19:53:05 2011 -0400
+
+    Add the log to linear amp conversion for Qlin.
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index d8263e2..b6efcb9 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -136,7 +136,8 @@ xSL=cochlea_aveSL_2tone(xg,cx,attnOHC,knee,CR,attnIHC,Level1);
+ ySL=cochlea_aveSL_2tone(yg,cy,attnOHC,knee,CR,attnIHC,Level1);
+ 
+ % Moore and Tan spectral difference metric
+-[D1,D2]=cochlea_Moore_2tone(xSL,ySL,cfreq);
++logToLin=@(vec,refLevel) 10.^((vec-refLevel)/20);
++[D1,D2]=cochlea_Moore_2tone(logToLin(xSL,Level1),logToLin(ySL,Level1),cfreq);
+ 
+ % Compute the nonlinear, linear, and combined metrics
+ HL_test=sum(HL); %Test for NH or HI listeners
+
+commit afa36364848487e5f2c1566eaf0314460cc7685f
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Wed Sep 7 16:56:22 2011 -0400
+
+    Separate func for hasqi with Carney and with Kates.
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index 4b67154..d8263e2 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -1,4 +1,4 @@
+-function [Nonlin,Linear,Combined,cxy]=Qual_metric(x,y,HL,eq,fsamp)
++function [Nonlin,Linear,Combined,cxy,D1,D2]=Qual_metric(x,y,HL,eq,fsamp)
+ % MATLAB function to compute the Cepstrum Correlation nonlinear metric,
+ % the Moore and Tan linear metric, and the multiplicative combined
+ % metric for speech quality.
+
+commit 87ecd6396d11377cc8cd02bcff11391c432ebd34
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Jul 18 13:47:25 2011 -0400
+
+    Commiting mid-work on cortex to move to akressner
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index 45339cf..4b67154 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -43,7 +43,7 @@ if fsamp < 16e3
+ end
+ 
+ % Find the beginning and end of the input sequence
+-[x,y]=AAK_findBeginningAndEndOfInput(x,y);
++[x,y]=AAK_chopOffBeginningAndEndOfInput(x,y);
+ 
+ % Remove the bulk delay between the input and output signals
+ if eq > 0
+
+commit 8952e72bb36196854d4ea92e81f65167a45612ef
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Jul 18 13:41:26 2011 -0400
+
+    Made AAK_chopOff neurogram compatible.
+
+diff --git a/HASQI/Kates/AAK_chopOffBeginningAndEndOfInput.m b/HASQI/Kates/AAK_chopOffBeginningAndEndOfInput.m
+index e6215f7..45f029c 100644
+--- a/HASQI/Kates/AAK_chopOffBeginningAndEndOfInput.m
++++ b/HASQI/Kates/AAK_chopOffBeginningAndEndOfInput.m
+@@ -1,22 +1,29 @@
+ function [x,y] = AAK_chopOffBeginningAndEndOfInput(x,y)
+ 
+-nsamp=min(length(x),length(y));
++% Make sure time is along first dim for the case of a vector
++if size(x,1)<size(x,2) % if it's a row vector
++	x=x.';
++	y=y.';
++end
++
++% Compute nsamp
++nsamp=min(size(x,1),size(y,1));
+ 
+-xmax=max(abs(x)); %Find the maximum value of the clear signal
+-zthr=0.001*xmax; %Set the zero detection threshold
++xmax=max(abs(x(:))); % Find the maximum value of the clear signal
++zthr=0.001*xmax; % Set the zero detection threshold
+ for n=1:nsamp
+ %	First value above the threshold starting from 1
+-	if x(n)>zthr
++	if any(x(n,:)>zthr)
+ 		nz0=n;
+ 		break;
+ 	end
+ end
+ for n=nsamp:-1:1
+ %	First value above the threshold starting from the end
+-	if x(n)>zthr
++	if any(x(n,:)>zthr)
+ 		nz1=n;
+ 		break;
+ 	end
+ end
+-x=x(nz0:nz1);
+-y=y(nz0:nz1);
++x=x(nz0:nz1,:);
++y=y(nz0:nz1,:);
+
+commit 3f83e7948089238c81843bb539b452cdb7cd0d07
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Jul 18 13:35:12 2011 -0400
+
+    Somehow chopOffBeginning isn't appearing on cortex
+
+diff --git a/HASQI/Kates/AAK_chopOffBeginningAndEndOfInput.m b/HASQI/Kates/AAK_chopOffBeginningAndEndOfInput.m
+new file mode 100644
+index 0000000..e6215f7
+--- /dev/null
++++ b/HASQI/Kates/AAK_chopOffBeginningAndEndOfInput.m
+@@ -0,0 +1,22 @@
++function [x,y] = AAK_chopOffBeginningAndEndOfInput(x,y)
++
++nsamp=min(length(x),length(y));
++
++xmax=max(abs(x)); %Find the maximum value of the clear signal
++zthr=0.001*xmax; %Set the zero detection threshold
++for n=1:nsamp
++%	First value above the threshold starting from 1
++	if x(n)>zthr
++		nz0=n;
++		break;
++	end
++end
++for n=nsamp:-1:1
++%	First value above the threshold starting from the end
++	if x(n)>zthr
++		nz1=n;
++		break;
++	end
++end
++x=x(nz0:nz1);
++y=y(nz0:nz1);
+
+commit 49afdc20f40041c8f5cb1c0f9bb3c4dbdb73b569
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Thu Jul 14 16:58:56 2011 -0400
+
+    Fixed misnamed file in Qual_metric.
+    
+    The correct file was called before I believe, but it probably caused
+    some slowness or confusion in Matlab.
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index e3df7dc..45339cf 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -43,7 +43,7 @@ if fsamp < 16e3
+ end
+ 
+ % Find the beginning and end of the input sequence
+-[x,y]=chopOffBeginningAndEndSilence(x,y);
++[x,y]=AAK_findBeginningAndEndOfInput(x,y);
+ 
+ % Remove the bulk delay between the input and output signals
+ if eq > 0
+diff --git a/HASQI/Kates/chopOffBeginningAndEndSilence.m b/HASQI/Kates/chopOffBeginningAndEndSilence.m
+deleted file mode 100644
+index 88d70df..0000000
+--- a/HASQI/Kates/chopOffBeginningAndEndSilence.m
++++ /dev/null
+@@ -1,22 +0,0 @@
+-function [x,y] = AAK_findBeginningAndEndOfInput(x,y)
+-
+-nsamp=min(length(x),length(y));
+-
+-xmax=max(abs(x)); %Find the maximum value of the clear signal
+-zthr=0.001*xmax; %Set the zero detection threshold
+-for n=1:nsamp
+-%	First value above the threshold starting from 1
+-	if x(n)>zthr
+-		nz0=n;
+-		break;
+-	end
+-end
+-for n=nsamp:-1:1
+-%	First value above the threshold starting from the end
+-	if x(n)>zthr
+-		nz1=n;
+-		break;
+-	end
+-end
+-x=x(nz0:nz1);
+-y=y(nz0:nz1);
+
+commit 3e385f830d911afbd5c1b82b6f486a4b4f85827a
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Thu May 5 13:55:48 2011 -0400
+
+    Moved general calling functions out of Kates folder
+    
+    Since these functions actually can call Kates function or
+    hasqiWithCarneyModel, it is more appropriate for them to live in the
+    HASQI folder rather than HASQI/Kates folder.
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+deleted file mode 100644
+index 9119bb2..0000000
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ /dev/null
+@@ -1,137 +0,0 @@
+-function [Qnonlin,Qlin,HASQI,cxy] = computeQualmetricForLoizouData(...
+-		pathToDynastat,pathToNoizeus,resamp,debugMode,funcHandle)
+-	% computeQualMetricForLoizouData computes the Qnonlin, Qlin, and HASQI values {{{
+-	% for each of the wav files from the Dynastat/Hu/Loizou dataset
+-	%
+-	% Inputs:
+-	%	resamp	{true,false}	Specific whether the wav files should be
+-	%							resampled to 16kHz from their native 8kHz
+-	%
+-	% Outputs:
+-	%	Qnonlin	Matrix (algorithms by snr by noisetype by sentence)
+-	%							Contains the sorted Qnonlin values for
+-	%							each of the wav files
+-	%
+-	%	Qlin	Matrix (algorithms by snr by noisetype by sentence)
+-	%							Contains the sorted Qlin values for
+-	%							each of the wav files
+-	%
+-	%	HASQI	Matrix (algorithms by snr by noisetype by sentence)
+-	%							Contains the sorted HASQI values for 
+-	%							each of the wav files
+-	% }}}
+-
+-try
+-
+-%% Check inputs {{{
+-	if nargin < 4
+-		debugMode = true;
+-	end
+-	if nargin < 3
+-		resamp = false;
+-	end
+-	if nargin < 2
+-		pathToNoizeus='~/sym/noizeus/';
+-	end
+-	if nargin < 1
+-		pathToDynastat='~/sym/Dynastat';
+-	end
+-	if pathToDynastat(end)~='/'
+-		pathToDynastat = [pathToDynastat '/'];
+-	end
+-	if pathToNoizeus(end)~='/'
+-		pathToNoizeus = [pathToNoizeus '/'];
+-	end
+-% }}}
+-
+-%% Get the filename of each wav file and identify the respective conditions {{{
+-namesOfAllCases = namesOfAllCases_load(pathToDynastat,{'*.wav'},debugMode);
+-numberOfCasesBeforeNoizeus = length(namesOfAllCases); 
+-	% the first half will be in pathToDynastat; 2nd half in pathToNoizeus
+-namesOfAllCases = [namesOfAllCases; namesOfControlCases_load];
+-if debugMode % {{{
+-	namesOfAllCases = namesOfAllCases(1:3) %#ok disp the test cases to the command window
+-end % }}}
+-[algorithm,snr,noisetype,sentnumber,maxSizeInfo] = sortLoizouCaseIntoParams(namesOfAllCases,'wav');
+-% }}}
+-
+-%% Initialize all the unsorted versions of the outputs % {{{
+-unsortedQnonlin = nan(length(namesOfAllCases),1);
+-unsortedQlin = nan(length(namesOfAllCases),1);
+-unsortedHASQI = nan(length(namesOfAllCases),1);
+-unsortedcxy=nan(length(namesOfAllCases),1);
+-% }}}
+-
+-%% Run through each case and compute the outputs % {{{
+-hearingThresholds = zeros(1,6); % normal hearing
+-delayEqualization = 1; % 1 = delay input to match output timing in each freq band
+-for ss = 1:length(namesOfAllCases)
+-
+-	x = wavread([pathToDynastat 'clean/sp' sprintf('%02.0f',sentnumber(ss))]);
+-	% Define the appropriate path {{{
+-	if ss <= numberOfCasesBeforeNoizeus
+-		path = pathToDynastat;
+-	else
+-		path = pathToNoizeus;
+-	end % }}}
+-	[y,fs_orig] = wavread([path namesOfAllCases{ss}]);
+-
+-	fsQualmetric = 16e3; % default sampling frequency according to Kates' original Qual_metric code
+-	if resamp && (fsQualmetric~=fs_orig) % {{{
+-		x = resample(x,fsQualmetric,fs_orig);
+-		y = resample(y,fsQualmetric,fs_orig);
+-	elseif not(resamp)
+-		fsQualmetric = fs_orig;
+-	end % }}}
+-
+-	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss),unsortedcxy(ss)]=...
+-		funcHandle(x,y,hearingThresholds,delayEqualization,fsQualmetric);
+-end
+-% }}} 
+-
+-%% Initialize the sorted outputs {{{
+-Qnonlin = nan(maxSizeInfo);
+-Qlin = nan(maxSizeInfo);
+-HASQI = nan(maxSizeInfo);
+-cxy=nan(maxSizeInfo);
+-% }}} 
+-
+-%% Sort all the outputs {{{
+-ind = sub2ind(maxSizeInfo,algorithm,snr,noisetype,sentnumber);
+-Qnonlin(ind) = unsortedQnonlin;
+-Qlin(ind) = unsortedQlin;
+-HASQI(ind) = unsortedHASQI;
+-cxy(ind)=unsortedcxy;
+-% }}}
+-
+-%% Remove the Nans {{{
+-Qnonlin(:,:,:,5:5:20) = [];
+-Qlin(:,:,:,5:5:20) = [];
+-HASQI(:,:,:,5:5:20) = [];
+-cxy(:,:,:,5:5:20) = [];
+-% }}}
+-
+-%% Average over sentences {{{
+-Qnonlin = mean(Qnonlin,4);
+-Qlin = mean(Qlin,4);
+-HASQI = mean(HASQI,4);
+-cxy = mean(cxy,4);
+-% }}}
+-
+-%% Send an email upon completion {{{
+-if not(debugMode)
+-	[~,computeridentifier] = system('hostname');
+-	send_mail('abbiekressner+matlab@gmail.com','Job finished.',computeridentifier);
+-end
+-% }}}
+-catch exception % {{{
+-	if debugMode == false
+-		pathToSave = false; %#ok (pathToSave is used by abbieCatchScript) note that false means don't save
+-		abbieCatchScript;
+-	else
+-		rethrow(exception);
+-	end
+-end
+-% }}}
+-
+-end % function end
+diff --git a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+deleted file mode 100644
+index 47d47c5..0000000
+--- a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
++++ /dev/null
+@@ -1,54 +0,0 @@
+-% Wrapper function to send computeQualmetricForLoizouData.m
+-
+-debugMode = false; % if true, change the number of workers to a number less than your test size
+-resamp = false;
+-whichFunction = @hasqiWithCarneyModel; % FIXME depending on function
+-whichConfig = 'local';
+-minNumWorkers = 4;
+-maxNumWorkers = 4;
+-
+-if strcmp(whichConfig,'local') % {{{
+-    pathToDynastat = '~/sym/Dynastat/';
+-	pathToNoizeus = '~/sym/noizeus/';
+-	pathToCarneyModel = '/Users/abbiekre/Documents/MATLAB/CarneyModels/Bruce01_zbcatmodel2007v2/';
+-elseif strcmp(whichConfig,'NeuroCluster')
+-    pathToDynastat = '/mnt/data/akressner/LoizouWavFiles/';
+-	pathToNoizeus = '/mnt/data/akressner/Noizeus/';
+-	pathToCarneyModel = '/mnt/data/akressner/Bruce01_zbcatmodel2007v2/';
+-else 
+-    error('You have not specified a valid configuration.');
+-end % }}}
+-funcInputs = {pathToDynastat,pathToNoizeus,resamp,debugMode,whichFunction};
+-numberOfOutputs = 4;
+-theFileDeps = [getFileDependencies('computeQualmetricForLoizouData');...
+-	'~/sym/sortingInfo.mat';...
+-	getFileDependencies(['/Users/abbiekre/Documents/MATLAB/ObjectiveMeasures/HASQI/'...
+-	'myCode/hasqiWithCarneyModel'])]; % FIXME depending on function
+-thePathDeps = {pathToDynastat;pathToNoizeus;pathToCarneyModel}; % just include Carney model either way
+-
+-sch = findResource('scheduler','Configuration',whichConfig);
+-job = createMatlabPoolJob(sch);
+-set(job,'MinimumNumberOfWorkers',minNumWorkers);
+-set(job,'MaximumNumberOfWorkers',maxNumWorkers);
+-set(job,'FileDependencies',theFileDeps);
+-set(job,'PathDependencies',thePathDeps);
+-task = createTask(job, @computeQualmetricForLoizouData, ...
+-    numberOfOutputs, funcInputs, ...
+-    'CaptureCommandWindowOutput', true);
+-submit(job);
+-
+-if debugMode
+-	wait(job);
+-	system('say job finished');
+-end
+-
+-
+-% RUN THE FOLLOWING CODE AFTER COMPLETION ... 
+-%{
+-whereToSave = '';
+-
+-out = getAllOutputArguments(job);
+-save([whereToSave 'out.mat']);
+-
+-destroy(j);
+-%}
+
+commit 3de86f7c930cc2c00eda90cb82e8f361c537cca3
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Wed May 4 11:17:55 2011 -0400
+
+    Made changes to get the correct scaling
+    
+    Fixed (I think!) Qual_metric and hasqiWithCarneyModel so that the
+    resulting loudness representations are on the same scale.
+
+diff --git a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+index cb3815e..47d47c5 100644
+--- a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+@@ -1,6 +1,6 @@
+ % Wrapper function to send computeQualmetricForLoizouData.m
+ 
+-debugMode = true; % if true, change the number of workers to a number less than your test size
++debugMode = false; % if true, change the number of workers to a number less than your test size
+ resamp = false;
+ whichFunction = @hasqiWithCarneyModel; % FIXME depending on function
+ whichConfig = 'local';
+
+commit fb5851e5f9e7d4735d28e4c035bbeff192e15178
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Wed May 4 09:49:42 2011 -0400
+
+    Found bug in convertToPascals
+    
+    ----------------------------- Matlab ----------------------------------
+    Proof to myself that the convertToPascals function is the one that is
+    causing the problem. I have shown that when I accidentally started x
+    with an rms of 5.011, I got the correct amplitude, and by correct I mean
+    I got what the amplitude should have been had I done it correctly the
+    first time.
+    ------------------------------------------------------------------------
+    >> x = wavread('/Users/abbiekre/Documents/MATLAB/Loizou/Hu_SubjListenerResults/Dynastat/clean/sp01.wav');
+    >> rms(x)
+    
+    ans =
+    
+            0.0342125478287061
+    
+    >> x79dB=convertToPa
+    No completions found.
+    >> addpath('~/Documents/MATLAB/ObjectiveMeasures/AmplitudeConversionOfModelInputs/');
+    >> x79=convertToPascals(x,79);
+    >> rms(x79)
+    
+    ans =
+    
+             0.178250187626748
+    
+    >> xbefore=rms(x)*(20e-6)*10^(79/20)*x;
+    >> rms(xbefore)
+    
+    ans =
+    
+           0.00020864156457386
+    
+    >> xrms5=x*(10^(14/20))/rms(x);
+    >> rms(xrms5)
+    
+    ans =
+    
+              5.01187233627277
+    
+    >> xrms5before=convertToPascals(xrms5,79);
+    >> rms(xrms5before)
+    
+    ans =
+    
+             0.178250187626746
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index d9df607..e3df7dc 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -1,4 +1,4 @@
+-function [Nonlin,Linear,Combined,xenv,yenv,cxy]=Qual_metric(x,y,HL,eq,fsamp)
++function [Nonlin,Linear,Combined,cxy]=Qual_metric(x,y,HL,eq,fsamp)
+ % MATLAB function to compute the Cepstrum Correlation nonlinear metric,
+ % the Moore and Tan linear metric, and the multiplicative combined
+ % metric for speech quality.
+diff --git a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+index 47d47c5..cb3815e 100644
+--- a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+@@ -1,6 +1,6 @@
+ % Wrapper function to send computeQualmetricForLoizouData.m
+ 
+-debugMode = false; % if true, change the number of workers to a number less than your test size
++debugMode = true; % if true, change the number of workers to a number less than your test size
+ resamp = false;
+ whichFunction = @hasqiWithCarneyModel; % FIXME depending on function
+ whichConfig = 'local';
+
+commit 1aadc6d0e00500e8e2a503f5fd16d18bc2934e09
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon May 2 11:58:03 2011 -0400
+
+    Fixing memory issue
+    
+    Turns out I was saving the x_vihc and y_vihc for each case and for each
+    channel.  These two cells were growing into extremely large variables.
+    I have removed the saving of these variables, as well as xenv and yenv.
+    I will run it just saving cxy.
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index f530747..9119bb2 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -1,4 +1,4 @@
+-function [Qnonlin,Qlin,HASQI,xenv,yenv,cxy] = computeQualmetricForLoizouData(...
++function [Qnonlin,Qlin,HASQI,cxy] = computeQualmetricForLoizouData(...
+ 		pathToDynastat,pathToNoizeus,resamp,debugMode,funcHandle)
+ 	% computeQualMetricForLoizouData computes the Qnonlin, Qlin, and HASQI values {{{
+ 	% for each of the wav files from the Dynastat/Hu/Loizou dataset
+@@ -59,8 +59,6 @@ end % }}}
+ unsortedQnonlin = nan(length(namesOfAllCases),1);
+ unsortedQlin = nan(length(namesOfAllCases),1);
+ unsortedHASQI = nan(length(namesOfAllCases),1);
+-unsortedxenv=cell(length(namesOfAllCases),1);
+-unsortedyenv=cell(length(namesOfAllCases),1);
+ unsortedcxy=nan(length(namesOfAllCases),1);
+ % }}}
+ 
+@@ -86,8 +84,7 @@ for ss = 1:length(namesOfAllCases)
+ 		fsQualmetric = fs_orig;
+ 	end % }}}
+ 
+-	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss),...
+-		unsortedxenv{ss},unsortedyenv{ss},unsortedcxy(ss)]=...
++	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss),unsortedcxy(ss)]=...
+ 		funcHandle(x,y,hearingThresholds,delayEqualization,fsQualmetric);
+ end
+ % }}} 
+@@ -96,8 +93,6 @@ end
+ Qnonlin = nan(maxSizeInfo);
+ Qlin = nan(maxSizeInfo);
+ HASQI = nan(maxSizeInfo);
+-xenv=cell(maxSizeInfo);
+-yenv=cell(maxSizeInfo);
+ cxy=nan(maxSizeInfo);
+ % }}} 
+ 
+@@ -106,8 +101,6 @@ ind = sub2ind(maxSizeInfo,algorithm,snr,noisetype,sentnumber);
+ Qnonlin(ind) = unsortedQnonlin;
+ Qlin(ind) = unsortedQlin;
+ HASQI(ind) = unsortedHASQI;
+-xenv(ind)=unsortedxenv;
+-yenv(ind)=unsortedyenv;
+ cxy(ind)=unsortedcxy;
+ % }}}
+ 
+@@ -115,8 +108,6 @@ cxy(ind)=unsortedcxy;
+ Qnonlin(:,:,:,5:5:20) = [];
+ Qlin(:,:,:,5:5:20) = [];
+ HASQI(:,:,:,5:5:20) = [];
+-xenv(:,:,:,5:5:20) = [];
+-yenv(:,:,:,5:5:20) = [];
+ cxy(:,:,:,5:5:20) = [];
+ % }}}
+ 
+@@ -124,6 +115,7 @@ cxy(:,:,:,5:5:20) = [];
+ Qnonlin = mean(Qnonlin,4);
+ Qlin = mean(Qlin,4);
+ HASQI = mean(HASQI,4);
++cxy = mean(cxy,4);
+ % }}}
+ 
+ %% Send an email upon completion {{{
+diff --git a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+index 3d19062..47d47c5 100644
+--- a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+@@ -19,7 +19,7 @@ else
+     error('You have not specified a valid configuration.');
+ end % }}}
+ funcInputs = {pathToDynastat,pathToNoizeus,resamp,debugMode,whichFunction};
+-numberOfOutputs = 6;
++numberOfOutputs = 4;
+ theFileDeps = [getFileDependencies('computeQualmetricForLoizouData');...
+ 	'~/sym/sortingInfo.mat';...
+ 	getFileDependencies(['/Users/abbiekre/Documents/MATLAB/ObjectiveMeasures/HASQI/'...
+
+commit d0da045c0f3faecb1dfcea94986dd57a47e87e53
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Sun May 1 19:10:22 2011 -0400
+
+    CarneyVihc w amp adjust before v to dBSPL
+    
+    Figured out that the xenv's and yenv's don't match because parts of the
+    signals are getting chopped off in the CarneyVihc case since the
+    amplitudes are not converting correctly. I have implemented an ad hoc
+    amplitude adjustment before the volts to dB SPL conversion based on
+    Kates's 65 dBSPL=1RMS conversion factor.
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index eaafb1f..d9df607 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -64,6 +64,13 @@ xRMS=sqrt(sum(x.*x)/length(x));
+ x=x/xRMS; %RMS = 1, corresponds to 65 dB SPL
+ y=y/xRMS; %Scale output to 65 dB SPL + amplification
+ 
++% Convert the amplitudes (for Kates's model, 65 dB SPL is a signal with an RMS of 1)
++desiredIntensity=79;  % 79dB SPL comes from Y. Hu, P.C. Loizou /
++				% Speech Communication 49 (2007) - page 592
++goalRMS=10^((desiredIntensity-65)/20);
++x=x*goalRMS;
++y=y*goalRMS;
++
+ % Pass the clean and degraded signals through the middle ear
+ xmid=middle_ear(x,fsamp);
+ ymid=middle_ear(y,fsamp);
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index e92ee2f..f530747 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -85,7 +85,7 @@ for ss = 1:length(namesOfAllCases)
+ 	elseif not(resamp)
+ 		fsQualmetric = fs_orig;
+ 	end % }}}
+-	
++
+ 	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss),...
+ 		unsortedxenv{ss},unsortedyenv{ss},unsortedcxy(ss)]=...
+ 		funcHandle(x,y,hearingThresholds,delayEqualization,fsQualmetric);
+
+commit 301b453acd0bd4dd77c9aab70fcefd0281eeb983
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Thu Apr 28 17:16:01 2011 -0400
+
+    hasqi carney vihc w xenv, yenv, cxy saved
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index 9da6c58..e92ee2f 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -1,4 +1,4 @@
+-function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(...
++function [Qnonlin,Qlin,HASQI,xenv,yenv,cxy] = computeQualmetricForLoizouData(...
+ 		pathToDynastat,pathToNoizeus,resamp,debugMode,funcHandle)
+ 	% computeQualMetricForLoizouData computes the Qnonlin, Qlin, and HASQI values {{{
+ 	% for each of the wav files from the Dynastat/Hu/Loizou dataset
+@@ -59,6 +59,9 @@ end % }}}
+ unsortedQnonlin = nan(length(namesOfAllCases),1);
+ unsortedQlin = nan(length(namesOfAllCases),1);
+ unsortedHASQI = nan(length(namesOfAllCases),1);
++unsortedxenv=cell(length(namesOfAllCases),1);
++unsortedyenv=cell(length(namesOfAllCases),1);
++unsortedcxy=nan(length(namesOfAllCases),1);
+ % }}}
+ 
+ %% Run through each case and compute the outputs % {{{
+@@ -83,7 +86,8 @@ for ss = 1:length(namesOfAllCases)
+ 		fsQualmetric = fs_orig;
+ 	end % }}}
+ 	
+-	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss)]=...
++	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss),...
++		unsortedxenv{ss},unsortedyenv{ss},unsortedcxy(ss)]=...
+ 		funcHandle(x,y,hearingThresholds,delayEqualization,fsQualmetric);
+ end
+ % }}} 
+@@ -92,6 +96,9 @@ end
+ Qnonlin = nan(maxSizeInfo);
+ Qlin = nan(maxSizeInfo);
+ HASQI = nan(maxSizeInfo);
++xenv=cell(maxSizeInfo);
++yenv=cell(maxSizeInfo);
++cxy=nan(maxSizeInfo);
+ % }}} 
+ 
+ %% Sort all the outputs {{{
+@@ -99,12 +106,18 @@ ind = sub2ind(maxSizeInfo,algorithm,snr,noisetype,sentnumber);
+ Qnonlin(ind) = unsortedQnonlin;
+ Qlin(ind) = unsortedQlin;
+ HASQI(ind) = unsortedHASQI;
++xenv(ind)=unsortedxenv;
++yenv(ind)=unsortedyenv;
++cxy(ind)=unsortedcxy;
+ % }}}
+ 
+ %% Remove the Nans {{{
+ Qnonlin(:,:,:,5:5:20) = [];
+ Qlin(:,:,:,5:5:20) = [];
+ HASQI(:,:,:,5:5:20) = [];
++xenv(:,:,:,5:5:20) = [];
++yenv(:,:,:,5:5:20) = [];
++cxy(:,:,:,5:5:20) = [];
+ % }}}
+ 
+ %% Average over sentences {{{
+diff --git a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+index 08e4fab..3d19062 100644
+--- a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+@@ -1,11 +1,11 @@
+ % Wrapper function to send computeQualmetricForLoizouData.m
+ 
+-debugMode = true; % if true, change the number of workers to a number less than your test size
++debugMode = false; % if true, change the number of workers to a number less than your test size
+ resamp = false;
+ whichFunction = @hasqiWithCarneyModel; % FIXME depending on function
+-whichConfig = 'NeuroCluster';
+-minNumWorkers = 3;
+-maxNumWorkers = 3;
++whichConfig = 'local';
++minNumWorkers = 4;
++maxNumWorkers = 4;
+ 
+ if strcmp(whichConfig,'local') % {{{
+     pathToDynastat = '~/sym/Dynastat/';
+@@ -19,7 +19,7 @@ else
+     error('You have not specified a valid configuration.');
+ end % }}}
+ funcInputs = {pathToDynastat,pathToNoizeus,resamp,debugMode,whichFunction};
+-numberOfOutputs = 3;
++numberOfOutputs = 6;
+ theFileDeps = [getFileDependencies('computeQualmetricForLoizouData');...
+ 	'~/sym/sortingInfo.mat';...
+ 	getFileDependencies(['/Users/abbiekre/Documents/MATLAB/ObjectiveMeasures/HASQI/'...
+
+commit bb02bc7cfa1553ebeb8fe1f96a39fbdbba0ec5a9
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Wed Apr 27 15:29:17 2011 -0400
+
+    Rewrote some files to compute NDs separately
+    
+    I have rewritten the functions so that I have access to the NDs directly
+    and not just the NTIs.
+
+diff --git a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+index e779f53..08e4fab 100644
+--- a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+@@ -1,11 +1,11 @@
+ % Wrapper function to send computeQualmetricForLoizouData.m
+ 
+-debugMode = false; % if true, change the number of workers to a number less than your test size
++debugMode = true; % if true, change the number of workers to a number less than your test size
+ resamp = false;
+ whichFunction = @hasqiWithCarneyModel; % FIXME depending on function
+ whichConfig = 'NeuroCluster';
+-minNumWorkers = 45;
+-maxNumWorkers = 45;
++minNumWorkers = 3;
++maxNumWorkers = 3;
+ 
+ if strcmp(whichConfig,'local') % {{{
+     pathToDynastat = '~/sym/Dynastat/';
+
+commit f084c91e53a84568dd65ae358e0fd58523cd89bf
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Tue Apr 26 19:08:12 2011 -0400
+
+    On cluster: hasqi w Carney model using vihc
+    
+    Since observations in step-by-step debugging show that vihc matches
+    Kates's xc and yc variables better than synout, I am running hasqi with
+    Carney's model using vihc on the cluster. Note that I am also
+    converting to dB in a similar fashion to how Kates does, even though I
+    don't understand why he has spikes/second in dB. I am running a test
+    case right now, and in the meantime, I started the full case.
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index e92ee2f..9da6c58 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -1,4 +1,4 @@
+-function [Qnonlin,Qlin,HASQI,xenv,yenv,cxy] = computeQualmetricForLoizouData(...
++function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(...
+ 		pathToDynastat,pathToNoizeus,resamp,debugMode,funcHandle)
+ 	% computeQualMetricForLoizouData computes the Qnonlin, Qlin, and HASQI values {{{
+ 	% for each of the wav files from the Dynastat/Hu/Loizou dataset
+@@ -59,9 +59,6 @@ end % }}}
+ unsortedQnonlin = nan(length(namesOfAllCases),1);
+ unsortedQlin = nan(length(namesOfAllCases),1);
+ unsortedHASQI = nan(length(namesOfAllCases),1);
+-unsortedxenv=cell(length(namesOfAllCases),1);
+-unsortedyenv=cell(length(namesOfAllCases),1);
+-unsortedcxy=nan(length(namesOfAllCases),1);
+ % }}}
+ 
+ %% Run through each case and compute the outputs % {{{
+@@ -86,8 +83,7 @@ for ss = 1:length(namesOfAllCases)
+ 		fsQualmetric = fs_orig;
+ 	end % }}}
+ 	
+-	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss),...
+-		unsortedxenv{ss},unsortedyenv{ss},unsortedcxy(ss)]=...
++	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss)]=...
+ 		funcHandle(x,y,hearingThresholds,delayEqualization,fsQualmetric);
+ end
+ % }}} 
+@@ -96,9 +92,6 @@ end
+ Qnonlin = nan(maxSizeInfo);
+ Qlin = nan(maxSizeInfo);
+ HASQI = nan(maxSizeInfo);
+-xenv=cell(maxSizeInfo);
+-yenv=cell(maxSizeInfo);
+-cxy=nan(maxSizeInfo);
+ % }}} 
+ 
+ %% Sort all the outputs {{{
+@@ -106,18 +99,12 @@ ind = sub2ind(maxSizeInfo,algorithm,snr,noisetype,sentnumber);
+ Qnonlin(ind) = unsortedQnonlin;
+ Qlin(ind) = unsortedQlin;
+ HASQI(ind) = unsortedHASQI;
+-xenv(ind)=unsortedxenv;
+-yenv(ind)=unsortedyenv;
+-cxy(ind)=unsortedcxy;
+ % }}}
+ 
+ %% Remove the Nans {{{
+ Qnonlin(:,:,:,5:5:20) = [];
+ Qlin(:,:,:,5:5:20) = [];
+ HASQI(:,:,:,5:5:20) = [];
+-xenv(:,:,:,5:5:20) = [];
+-yenv(:,:,:,5:5:20) = [];
+-cxy(:,:,:,5:5:20) = [];
+ % }}}
+ 
+ %% Average over sentences {{{
+diff --git a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+index 57107c8..e779f53 100644
+--- a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+@@ -19,7 +19,7 @@ else
+     error('You have not specified a valid configuration.');
+ end % }}}
+ funcInputs = {pathToDynastat,pathToNoizeus,resamp,debugMode,whichFunction};
+-numberOfOutputs = 6;
++numberOfOutputs = 3;
+ theFileDeps = [getFileDependencies('computeQualmetricForLoizouData');...
+ 	'~/sym/sortingInfo.mat';...
+ 	getFileDependencies(['/Users/abbiekre/Documents/MATLAB/ObjectiveMeasures/HASQI/'...
+
+commit ef8ff4a554e44001a71828b40fc9be8116640c87
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Tue Apr 26 18:29:30 2011 -0400
+
+    Committing debugging code.
+    
+    Working on figuring out why I get such a difference when I use Carney's
+    model instead of Kates's model. I don't think I have an answer yet, but
+    I think I have figured out that if I used vihc instead of synout, the
+    "xenv" and "yenv" variables match more closely. I think I am going toad
+    just the code appropriately, and then run it with Carney's model on the
+    cluster just to see what happens.
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index d88ecae..eaafb1f 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -42,35 +42,8 @@ if fsamp < 16e3
+ 	nchan = length(cfreq); % reset nchan
+ end
+ 
+-% Check the file sizes
+-nx=length(x);
+-ny=length(y);
+-nsamp=min(nx,ny);
+-
+ % Find the beginning and end of the input sequence
+-xmax=max(abs(x)); %Find the maximum value of the clear signal
+-zthr=0.001*xmax; %Set the zero detection threshold
+-for n=1:nsamp
+-%	First value above the threshold starting from 1
+-	if x(n)>zthr
+-		nz0=n;
+-		break;
+-	end
+-end
+-for n=nsamp:-1:1
+-%	First value above the threshold starting from the end
+-	if x(n)>zthr
+-		nz1=n;
+-		break;
+-	end
+-end
+-x=x(nz0:nz1);
+-y=y(nz0:nz1);
+-
+-% Adjust the signal RMS levels
+-xRMS=sqrt(sum(x.*x)/length(x));
+-x=x/xRMS; %RMS = 1, corresponds to 65 dB SPL
+-y=y/xRMS; %Scale output to 65 dB SPL + amplification
++[x,y]=chopOffBeginningAndEndSilence(x,y);
+ 
+ % Remove the bulk delay between the input and output signals
+ if eq > 0
+@@ -86,6 +59,11 @@ cfreq1=frequency_ERB(nchan,shift);
+ HL1=100*[1 1 1 1 1 1]; %Maximum loss for control filter parameters
+ [~,BW1,~,~,~]=cochlear_loss2(HL1,cfreq1);
+ 
++% Adjust the signal RMS levels
++xRMS=sqrt(sum(x.*x)/length(x));
++x=x/xRMS; %RMS = 1, corresponds to 65 dB SPL
++y=y/xRMS; %Scale output to 65 dB SPL + amplification
++
+ % Pass the clean and degraded signals through the middle ear
+ xmid=middle_ear(x,fsamp);
+ ymid=middle_ear(y,fsamp);
+@@ -108,16 +86,9 @@ for n=1:nchan
+       
+     % Correct for the delay between the input and output
+ 	if eq == 1
+-    	npts=length(xbm);
+-   		xy=xcorr(xbm,ybm); %Cross-correlation of the signals
+-    	[~,i]=max(xy); %Maximum of the cross-correlation
+-    	delay=npts-i; %Bulk delay
+-    	delay=max(delay,0); %Preclude negative delays (time advance)
+-    	z=zeros(delay,1); %Back up from the ccorr peak location
+-    	xe=[z; xe]; %Delay the clean reference
+-    	xe=xe(1:npts); %Truncate the delayed sequence to the original length
+-    	xce=[z; xce]; %Delay the clean reference
+-    	xce=xce(1:npts); %Truncate the delayed sequence to the original length
++		delay=getFreqBandDelay(xbm,ybm);
++    	xe=applyTheDelay(delay,xe(:).');
++		xce=applyTheDelay(delay,xce(:).');
+ 	end
+   
+ %	RMS level of the clean and degraded signals for linear metric
+
+commit cc8f33f640013e5849a61c662de203c6ea370503
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Apr 25 10:41:15 2011 -0400
+
+    Renaming & moving AAK_findBeginningAndEndOfInput
+
+diff --git a/HASQI/Kates/chopOffBeginningAndEndSilence.m b/HASQI/Kates/chopOffBeginningAndEndSilence.m
+new file mode 100644
+index 0000000..88d70df
+--- /dev/null
++++ b/HASQI/Kates/chopOffBeginningAndEndSilence.m
+@@ -0,0 +1,22 @@
++function [x,y] = AAK_findBeginningAndEndOfInput(x,y)
++
++nsamp=min(length(x),length(y));
++
++xmax=max(abs(x)); %Find the maximum value of the clear signal
++zthr=0.001*xmax; %Set the zero detection threshold
++for n=1:nsamp
++%	First value above the threshold starting from 1
++	if x(n)>zthr
++		nz0=n;
++		break;
++	end
++end
++for n=nsamp:-1:1
++%	First value above the threshold starting from the end
++	if x(n)>zthr
++		nz1=n;
++		break;
++	end
++end
++x=x(nz0:nz1);
++y=y(nz0:nz1);
+
+commit c7f0328f1d05f0ac5f7b8f6ef7a41ce564ea525f
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Apr 25 10:12:36 2011 -0400
+
+    Pulled Qual_metric from runKatesModelLocally
+    
+    Makes the Qual_metric function compatible with
+    saving the xenv, yenv, and cxy on the master
+    branch.  (At least I think this is all I need to
+    accomplish this.)
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index 8437dac..d88ecae 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -1,4 +1,4 @@
+-function [Nonlin,Linear,Combined]=Qual_metric(x,y,HL,eq,fsamp)
++function [Nonlin,Linear,Combined,xenv,yenv,cxy]=Qual_metric(x,y,HL,eq,fsamp)
+ % MATLAB function to compute the Cepstrum Correlation nonlinear metric,
+ % the Moore and Tan linear metric, and the multiplicative combined
+ % metric for speech quality.
+@@ -31,14 +31,14 @@ x = x(:); % make sure it's a column vector
+ y = y(:); % make sure it's a column vector
+ 
+ % Processing parameters
+-nchan=32; %Use 32 frequency bands from 150 to 8000 Hz, 22 freq bands from 150 to 4kHz.
++nchan=32; %Use 32 frequency bands from 150 to 8000 Hz
+ Level1=65; %Reference level in dB SPL for RMS=1
+ 
+ % Set the auditory band center frequencies on an ERB scale
+ % Assumes that fsamp >= 16000
+ cfreq=frequency_ERB(nchan);
+ if fsamp < 16e3
+-	cfreq=cfreq(cfreq<=fsamp/2);
++	cfreq=cfreq(cfreq<=fsamp/2); % only take those above fs/2
+ 	nchan = length(cfreq); % reset nchan
+ end
+ 
+@@ -84,7 +84,7 @@ end
+ shift=0.02;
+ cfreq1=frequency_ERB(nchan,shift);
+ HL1=100*[1 1 1 1 1 1]; %Maximum loss for control filter parameters
+-[attnOHC1,BW1,knee1,CR1,attnIHC1]=cochlear_loss2(HL1,cfreq1);
++[~,BW1,~,~,~]=cochlear_loss2(HL1,cfreq1);
+ 
+ % Pass the clean and degraded signals through the middle ear
+ xmid=middle_ear(x,fsamp);
+
+commit 6732f9132ca9020bc339688c5279e536f236151d
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Thu Apr 21 18:57:24 2011 -0400
+
+    Renaming and moving the correlation calculation file.
+
+diff --git a/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m b/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m
+deleted file mode 100644
+index 993c3cb..0000000
+--- a/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m
++++ /dev/null
+@@ -1,20 +0,0 @@
+-function [r,stderror] = calcCorrelationQualmetricIndividLoizouData( ...
+-	pathToSubj,pathToObj,whichObjMeasure)
+-
+-	if nargin < 3
+-		whichObjMeasure = 'hasqi';
+-	end
+-	if nargin < 2
+-		pathToObj = '~/sym/QnonlinQlinHASQI_resampTo16k.mat';
+-	end
+-	if isempty(pathToObj)
+-		pathToObj = '~/sym/QnonlinQlinHASQI_resampTo16k.mat';
+-	end
+-
+-
+-	%% Load data {{{
+-	subj = load(pathToSubj);
+-	obj = load(pathToObj,whichObjMeasure);
+-	% }}}
+-	
+-	[r,stderror] = pearson(obj.(whichObjMeasure)(:),subj.subj(:));
+
+commit 4cade2e1ffca27fe8a5411a47cdd650e30293b87
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Thu Apr 21 18:56:17 2011 -0400
+
+    Adding and rearranging files in the HASQI folder.
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+deleted file mode 100644
+index 57107c8..0000000
+--- a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
++++ /dev/null
+@@ -1,54 +0,0 @@
+-% Wrapper function to send computeQualmetricForLoizouData.m
+-
+-debugMode = false; % if true, change the number of workers to a number less than your test size
+-resamp = false;
+-whichFunction = @hasqiWithCarneyModel; % FIXME depending on function
+-whichConfig = 'NeuroCluster';
+-minNumWorkers = 45;
+-maxNumWorkers = 45;
+-
+-if strcmp(whichConfig,'local') % {{{
+-    pathToDynastat = '~/sym/Dynastat/';
+-	pathToNoizeus = '~/sym/noizeus/';
+-	pathToCarneyModel = '/Users/abbiekre/Documents/MATLAB/CarneyModels/Bruce01_zbcatmodel2007v2/';
+-elseif strcmp(whichConfig,'NeuroCluster')
+-    pathToDynastat = '/mnt/data/akressner/LoizouWavFiles/';
+-	pathToNoizeus = '/mnt/data/akressner/Noizeus/';
+-	pathToCarneyModel = '/mnt/data/akressner/Bruce01_zbcatmodel2007v2/';
+-else 
+-    error('You have not specified a valid configuration.');
+-end % }}}
+-funcInputs = {pathToDynastat,pathToNoizeus,resamp,debugMode,whichFunction};
+-numberOfOutputs = 6;
+-theFileDeps = [getFileDependencies('computeQualmetricForLoizouData');...
+-	'~/sym/sortingInfo.mat';...
+-	getFileDependencies(['/Users/abbiekre/Documents/MATLAB/ObjectiveMeasures/HASQI/'...
+-	'myCode/hasqiWithCarneyModel'])]; % FIXME depending on function
+-thePathDeps = {pathToDynastat;pathToNoizeus;pathToCarneyModel}; % just include Carney model either way
+-
+-sch = findResource('scheduler','Configuration',whichConfig);
+-job = createMatlabPoolJob(sch);
+-set(job,'MinimumNumberOfWorkers',minNumWorkers);
+-set(job,'MaximumNumberOfWorkers',maxNumWorkers);
+-set(job,'FileDependencies',theFileDeps);
+-set(job,'PathDependencies',thePathDeps);
+-task = createTask(job, @computeQualmetricForLoizouData, ...
+-    numberOfOutputs, funcInputs, ...
+-    'CaptureCommandWindowOutput', true);
+-submit(job);
+-
+-if debugMode
+-	wait(job);
+-	system('say job finished');
+-end
+-
+-
+-% RUN THE FOLLOWING CODE AFTER COMPLETION ... 
+-%{
+-whereToSave = '';
+-
+-out = getAllOutputArguments(job);
+-save([whereToSave 'out.mat']);
+-
+-destroy(j);
+-%}
+diff --git a/HASQI/Kates/getSortNormalizeAndAvgIndividLoizouScores.m b/HASQI/Kates/getSortNormalizeAndAvgIndividLoizouScores.m
+deleted file mode 100644
+index 2183136..0000000
+--- a/HASQI/Kates/getSortNormalizeAndAvgIndividLoizouScores.m
++++ /dev/null
+@@ -1,90 +0,0 @@
+-function subj = getSortNormalizeAndAvgIndividLoizouScores(normalizationMethod,subjTest,pathToXls)
+-
+-	%% Check inputs and define variables based on normalizationMethod {{{
+-	if nargin < 3 % {{{
+-		pathToXls = ['/Users/abbiekre/Documents/MATLAB/Loizou/' ...
+-			'Hu_SubjListenerResults/individSubjectiveQualityScores.xls'];
+-	end % }}}
+-	if nargin < 2 % {{{
+-		subjTest = 3; % {1=sig, 2=bak, 3 = ovrl} NOTE: sig and bak contains 0s, which are not a choice, so you should deal with that in some way (exclude those scores perhaps??)
+-	end % }}}
+-	switch normalizationMethod
+-		case 1
+-			xlssheet = 'Raw-ratings';
+-			funcHandle = @normalizeByZscoresPerSubjAndExp;
+-		case 2
+-			xlssheet = 'Transformed-ratings';
+-			funcHandle = @normalizeToZeroAndOne;
+-		case 3
+-			xlssheet = 'Raw-ratings';
+-			funcHandle = @normalizeToZeroAndOne;
+-		case 4
+-			xlssheet = 'Raw-ratings';
+-			funcHandle = @normalizeByZscoresPerSubj;
+-	end
+-	% }}}
+-
+-	%% Load the scores {{{
+-	[~,~,xls] = xlsread(pathToXls,xlssheet);
+-	xls = xls(2:end,:); % get rid of title line
+-	scores = cell2mat(xls(:,subjTest+4)); % put the scores into a vector
+-		% add 4 since sig, bak, and ovrl are in cols 5:7
+-		%
+-	experimentNumber = cell2mat(xls(:,1));
+-	subjectNumber = cell2mat(xls(:,3));
+-	% }}}
+-	
+-	%% Get the sorting info {{{
+-	[algorithm,snr,noisetype,talker,howManyValsPerVariable] = sortLoizouCaseIntoParams(xls,'individScores');
+-	% }}}
+-	
+-	%% Throw out the "R" cases {{{
+-	scores(algorithm==16) = [];
+-	experimentNumber(algorithm==16) = [];
+-	subjectNumber(algorithm==16) = [];
+-	snr(algorithm==16) = [];
+-	noisetype(algorithm==16) = [];
+-	talker(algorithm==16) = [];
+-	algorithm(algorithm==16) = [];
+-	% }}}
+-
+-	%% Call the appropriate function to normalize the scores {{{
+-	scores = funcHandle(scores,subjectNumber,experimentNumber);
+-	% }}}
+-	
+-	%% Sort scores into the multi-dimensional subj matrix {{{
+-	subj = nan([howManyValsPerVariable max(subjectNumber) max(experimentNumber)]); 
+-	ind = sub2ind(size(subj),algorithm,snr,noisetype,talker,subjectNumber,experimentNumber);
+-	subj(ind) = scores; 
+-	% }}}
+-
+-	%% Get rid of extra NaNs and average over talker, subject, and experiment {{{
+-	% The code in this section accomplishes the following, but about 2.3 times faster {{{
+-	%{
+-	mean = nan(size(subj,1),size(subj,2),size(subj,3));
+-	for ii = 1:size(subj,1),
+-		for jj = 1:size(subj,2),
+-			for kk = 1:size(subj,3),
+-				temp = reshape(subj(ii,jj,kk,:,:,:),1,[]);
+-				if isnan(temp(1))
+-					mean(ii,jj,kk) = mean(temp(length(temp)/2+1:end));
+-				else
+-					mean(ii,jj,kk) = mean(temp(1:length(temp)/2));
+-				end
+-			end
+-		end
+-	end
+-	%}
+-	% }}}
+-	A = size(subj,1);
+-	B = size(subj,2);
+-	C = size(subj,3);
+-
+-	subj = reshape(subj,A,B,C,[]);
+-	subj = shiftdim(subj,3);
+-	subj = reshape(subj,[],1);
+-	subj(isnan(subj)) = [];
+-	subj = reshape(subj,[],A,B,C);
+-	subj = shiftdim(subj,1);
+-	subj = mean(subj,4);
+-	% }}}
+diff --git a/HASQI/Kates/normalizeByZscoresPerSubj.m b/HASQI/Kates/normalizeByZscoresPerSubj.m
+deleted file mode 100644
+index 9a08271..0000000
+--- a/HASQI/Kates/normalizeByZscoresPerSubj.m
++++ /dev/null
+@@ -1,10 +0,0 @@
+-function scores = normalizeByZscoresPerSubj(scores,subject,experiment)
+-% the third input (experiment) is included so that it has the same call 
+-% format as the other normalization functions
+-
+-	listOfSubjects = unique(subject);
+-
+-	for ss = 1:length(listOfSubjects)
+-		logicalMask = (subject==listOfSubjects(ss));
+-		scores(logicalMask) = zscore(scores(logicalMask));
+-	end
+diff --git a/HASQI/Kates/normalizeByZscoresPerSubjAndExp.m b/HASQI/Kates/normalizeByZscoresPerSubjAndExp.m
+deleted file mode 100644
+index 3be036a..0000000
+--- a/HASQI/Kates/normalizeByZscoresPerSubjAndExp.m
++++ /dev/null
+@@ -1,26 +0,0 @@
+-function scores = normalizeByZscoresPerSubjAndExp(scores,subject,experiment)
+-
+-
+-	listOfSubjects = unique(subject);
+-	listOfExperiments = unique(experiment);
+-
+-	for ss = 1:length(listOfSubjects)
+-		for ee = 1:length(listOfExperiments)
+-			logicalMask = (subject==listOfSubjects(ss))&(experiment==listOfExperiments(ee));
+-			scores(logicalMask) = zscore(scores(logicalMask));
+-		end
+-	end
+-	
+-	
+-	
+-%{ 
+-% Code for old method	
+-	indOfNonnan = not(isnan(individScores));
+-	[~,~,~,subject,session] = ind2sub(size(individScores),indOfNonnan);
+-	for ii = 1:size(individScores,4)
+-		for jj = 1:size(individScores,5)
+-			individScores(indOfNonnan( (subject==ii)&(session==jj) )) = ...
+-				zscore(individScores(indOfNonnan( (subject==ii)&(session==jj) )));
+-		end
+-	end
+-%}
+diff --git a/HASQI/Kates/normalizeToZeroAndOne.m b/HASQI/Kates/normalizeToZeroAndOne.m
+deleted file mode 100644
+index e455312..0000000
+--- a/HASQI/Kates/normalizeToZeroAndOne.m
++++ /dev/null
+@@ -1,28 +0,0 @@
+-function scores = normalizeToZeroAndOne(scores,subject,experiment)
+-
+-
+-	listOfSubjects = unique(subject);
+-	listOfExperiments = unique(experiment);
+-
+-	for ss = 1:length(listOfSubjects)
+-		for ee = 1:length(listOfExperiments)
+-			logicalMask = (subject==listOfSubjects(ss))&(experiment==listOfExperiments(ee));
+-			scores(logicalMask) = scores(logicalMask) - min(scores(logicalMask)); % subtract the minimum
+-			scores(logicalMask) = scores(logicalMask)/max(scores(logicalMask)); % normalize to one
+-		end
+-	end
+-
+-
+-%{ 
+-% old method	
+-	indOfNonnan = not(isnan(individScores));
+-	[~,~,~,subject,~] = ind2sub(size(individScores),indOfNonnan);
+-	for ii = 1:size(individScores,4)
+-		whichInds = find( subject == ii );
+-		x = individScores(indOfNonnan(whichInds)); % for ease of reading, temporarily store the scores
+-		x = x - min(x(:)); % subtract out the subject's lowest rating
+-		x = x/max(x(:)); % divide by the largest number
+-		individScores(indOfNonnan(whichInds)) = x;
+-	end
+-
+-%}
+diff --git a/HASQI/Kates/startJob_computeQualmetricForLoizouData.m b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+new file mode 100644
+index 0000000..57107c8
+--- /dev/null
++++ b/HASQI/Kates/startJob_computeQualmetricForLoizouData.m
+@@ -0,0 +1,54 @@
++% Wrapper function to send computeQualmetricForLoizouData.m
++
++debugMode = false; % if true, change the number of workers to a number less than your test size
++resamp = false;
++whichFunction = @hasqiWithCarneyModel; % FIXME depending on function
++whichConfig = 'NeuroCluster';
++minNumWorkers = 45;
++maxNumWorkers = 45;
++
++if strcmp(whichConfig,'local') % {{{
++    pathToDynastat = '~/sym/Dynastat/';
++	pathToNoizeus = '~/sym/noizeus/';
++	pathToCarneyModel = '/Users/abbiekre/Documents/MATLAB/CarneyModels/Bruce01_zbcatmodel2007v2/';
++elseif strcmp(whichConfig,'NeuroCluster')
++    pathToDynastat = '/mnt/data/akressner/LoizouWavFiles/';
++	pathToNoizeus = '/mnt/data/akressner/Noizeus/';
++	pathToCarneyModel = '/mnt/data/akressner/Bruce01_zbcatmodel2007v2/';
++else 
++    error('You have not specified a valid configuration.');
++end % }}}
++funcInputs = {pathToDynastat,pathToNoizeus,resamp,debugMode,whichFunction};
++numberOfOutputs = 6;
++theFileDeps = [getFileDependencies('computeQualmetricForLoizouData');...
++	'~/sym/sortingInfo.mat';...
++	getFileDependencies(['/Users/abbiekre/Documents/MATLAB/ObjectiveMeasures/HASQI/'...
++	'myCode/hasqiWithCarneyModel'])]; % FIXME depending on function
++thePathDeps = {pathToDynastat;pathToNoizeus;pathToCarneyModel}; % just include Carney model either way
++
++sch = findResource('scheduler','Configuration',whichConfig);
++job = createMatlabPoolJob(sch);
++set(job,'MinimumNumberOfWorkers',minNumWorkers);
++set(job,'MaximumNumberOfWorkers',maxNumWorkers);
++set(job,'FileDependencies',theFileDeps);
++set(job,'PathDependencies',thePathDeps);
++task = createTask(job, @computeQualmetricForLoizouData, ...
++    numberOfOutputs, funcInputs, ...
++    'CaptureCommandWindowOutput', true);
++submit(job);
++
++if debugMode
++	wait(job);
++	system('say job finished');
++end
++
++
++% RUN THE FOLLOWING CODE AFTER COMPLETION ... 
++%{
++whereToSave = '';
++
++out = getAllOutputArguments(job);
++save([whereToSave 'out.mat']);
++
++destroy(j);
++%}
+
+commit cc4fec704d168a37fc858f9330fc5b96194c9ccc
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Thu Apr 21 17:42:07 2011 -0400
+
+    Changed calcCorrelationQualmetricIndividLoizouData so that it only loads the part of the objective measure mat file that it needs, based on whichever measure (qnonlin, qlin, or hasqi) the user specifies for the correlation calculation.
+
+diff --git a/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m b/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m
+index bbd21bb..993c3cb 100644
+--- a/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m
++++ b/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m
+@@ -14,7 +14,7 @@ function [r,stderror] = calcCorrelationQualmetricIndividLoizouData( ...
+ 
+ 	%% Load data {{{
+ 	subj = load(pathToSubj);
+-	obj = load(pathToObj);
++	obj = load(pathToObj,whichObjMeasure);
+ 	% }}}
+ 	
+ 	[r,stderror] = pearson(obj.(whichObjMeasure)(:),subj.subj(:));
+
+commit b2d8a5691af8660260ea1990cec7ab0b0d6fd170
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Tue Apr 19 14:29:23 2011 -0400
+
+    Adding computer identifier to the email that gets
+    sent at the end of completion.
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index 43fd0d2..e92ee2f 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -128,7 +128,8 @@ HASQI = mean(HASQI,4);
+ 
+ %% Send an email upon completion {{{
+ if not(debugMode)
+-	send_mail('abbiekressner+matlab@gmail.com','Job finished.');
++	[~,computeridentifier] = system('hostname');
++	send_mail('abbiekressner+matlab@gmail.com','Job finished.',computeridentifier);
+ end
+ % }}}
+ catch exception % {{{
+
+commit f5faf963abacae4bb67f493eb955bfdb618c8c96
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Tue Apr 19 11:31:40 2011 -0400
+
+    Fixed bug (wasn't initializing unsortedxenv and
+    unsortedyenv correctly).
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index c6d171f..43fd0d2 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -59,8 +59,8 @@ end % }}}
+ unsortedQnonlin = nan(length(namesOfAllCases),1);
+ unsortedQlin = nan(length(namesOfAllCases),1);
+ unsortedHASQI = nan(length(namesOfAllCases),1);
+-unsortedxenv=cell(length(namesOfAllCases));
+-unsortedyenv=cell(length(namesOfAllCases));
++unsortedxenv=cell(length(namesOfAllCases),1);
++unsortedyenv=cell(length(namesOfAllCases),1);
+ unsortedcxy=nan(length(namesOfAllCases),1);
+ % }}}
+ 
+
+commit c190634b00d1e7529dd1ae39b7aecd8c610a57bd
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Apr 18 19:24:38 2011 -0400
+
+    Fixed the problem where I didn't have the
+    appropriate outputs defined to capture xenv, yenv,
+    and cxy. It should work now. It's currently
+    running on the cluster.
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index 357615f..c6d171f 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -1,4 +1,4 @@
+-function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(...
++function [Qnonlin,Qlin,HASQI,xenv,yenv,cxy] = computeQualmetricForLoizouData(...
+ 		pathToDynastat,pathToNoizeus,resamp,debugMode,funcHandle)
+ 	% computeQualMetricForLoizouData computes the Qnonlin, Qlin, and HASQI values {{{
+ 	% for each of the wav files from the Dynastat/Hu/Loizou dataset
+@@ -59,6 +59,9 @@ end % }}}
+ unsortedQnonlin = nan(length(namesOfAllCases),1);
+ unsortedQlin = nan(length(namesOfAllCases),1);
+ unsortedHASQI = nan(length(namesOfAllCases),1);
++unsortedxenv=cell(length(namesOfAllCases));
++unsortedyenv=cell(length(namesOfAllCases));
++unsortedcxy=nan(length(namesOfAllCases),1);
+ % }}}
+ 
+ %% Run through each case and compute the outputs % {{{
+@@ -83,7 +86,8 @@ for ss = 1:length(namesOfAllCases)
+ 		fsQualmetric = fs_orig;
+ 	end % }}}
+ 	
+-	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss)] = ...
++	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss),...
++		unsortedxenv{ss},unsortedyenv{ss},unsortedcxy(ss)]=...
+ 		funcHandle(x,y,hearingThresholds,delayEqualization,fsQualmetric);
+ end
+ % }}} 
+@@ -92,6 +96,9 @@ end
+ Qnonlin = nan(maxSizeInfo);
+ Qlin = nan(maxSizeInfo);
+ HASQI = nan(maxSizeInfo);
++xenv=cell(maxSizeInfo);
++yenv=cell(maxSizeInfo);
++cxy=nan(maxSizeInfo);
+ % }}} 
+ 
+ %% Sort all the outputs {{{
+@@ -99,12 +106,18 @@ ind = sub2ind(maxSizeInfo,algorithm,snr,noisetype,sentnumber);
+ Qnonlin(ind) = unsortedQnonlin;
+ Qlin(ind) = unsortedQlin;
+ HASQI(ind) = unsortedHASQI;
++xenv(ind)=unsortedxenv;
++yenv(ind)=unsortedyenv;
++cxy(ind)=unsortedcxy;
+ % }}}
+ 
+ %% Remove the Nans {{{
+ Qnonlin(:,:,:,5:5:20) = [];
+ Qlin(:,:,:,5:5:20) = [];
+ HASQI(:,:,:,5:5:20) = [];
++xenv(:,:,:,5:5:20) = [];
++yenv(:,:,:,5:5:20) = [];
++cxy(:,:,:,5:5:20) = [];
+ % }}}
+ 
+ %% Average over sentences {{{
+
+commit b3098ccf313cb34781cc8504de3020c3309a9a15
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Apr 18 18:05:50 2011 -0400
+
+    Previous code didn't work because I didn't have the correct permissions on the Bruce model files on the RAID.  Here is the code that is running right now on the cluster (Carney model, no resamp, but chop off creq above 4k). Note that I have added outputs xenv, yenv, and cxy to hasqiWithCarneyModel so that I can potentially train the parameters on the transformation of cxy later.
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+index 640b551..57107c8 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+@@ -1,11 +1,11 @@
+ % Wrapper function to send computeQualmetricForLoizouData.m
+ 
+-debugMode = true; % if true, change the number of workers to a number less than your test size
++debugMode = false; % if true, change the number of workers to a number less than your test size
+ resamp = false;
+ whichFunction = @hasqiWithCarneyModel; % FIXME depending on function
+ whichConfig = 'NeuroCluster';
+-minNumWorkers = 3;
+-maxNumWorkers = 3;
++minNumWorkers = 45;
++maxNumWorkers = 45;
+ 
+ if strcmp(whichConfig,'local') % {{{
+     pathToDynastat = '~/sym/Dynastat/';
+@@ -14,12 +14,12 @@ if strcmp(whichConfig,'local') % {{{
+ elseif strcmp(whichConfig,'NeuroCluster')
+     pathToDynastat = '/mnt/data/akressner/LoizouWavFiles/';
+ 	pathToNoizeus = '/mnt/data/akressner/Noizeus/';
+-	pathToCarneyModel = '/mnt/data/akressner/Bruce01_zbcatmodel2007v2';
++	pathToCarneyModel = '/mnt/data/akressner/Bruce01_zbcatmodel2007v2/';
+ else 
+     error('You have not specified a valid configuration.');
+ end % }}}
+ funcInputs = {pathToDynastat,pathToNoizeus,resamp,debugMode,whichFunction};
+-numberOfOutputs = 3;
++numberOfOutputs = 6;
+ theFileDeps = [getFileDependencies('computeQualmetricForLoizouData');...
+ 	'~/sym/sortingInfo.mat';...
+ 	getFileDependencies(['/Users/abbiekre/Documents/MATLAB/ObjectiveMeasures/HASQI/'...
+
+commit d7a7d6ac8ff9ecb1e3ee4d4eae00db4401751ed6
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Apr 18 17:13:14 2011 -0400
+
+    Comitting changes I made to run hasqi with Carney model on the cluster.
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index 30bc5f8..8437dac 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -34,6 +34,14 @@ y = y(:); % make sure it's a column vector
+ nchan=32; %Use 32 frequency bands from 150 to 8000 Hz, 22 freq bands from 150 to 4kHz.
+ Level1=65; %Reference level in dB SPL for RMS=1
+ 
++% Set the auditory band center frequencies on an ERB scale
++% Assumes that fsamp >= 16000
++cfreq=frequency_ERB(nchan);
++if fsamp < 16e3
++	cfreq=cfreq(cfreq<=fsamp/2);
++	nchan = length(cfreq); % reset nchan
++end
++
+ % Check the file sizes
+ nx=length(x);
+ ny=length(y);
+@@ -69,14 +77,6 @@ if eq > 0
+     x=JMK_BulkDelay(x,y,fsamp);
+ end
+ 
+-% Set the auditory band center frequencies on an ERB scale
+-% Assumes that fsamp >= 16000
+-cfreq=frequency_ERB(nchan);
+-if fsamp < 16e3
+-	cfreq=cfreq(cfreq<=fsamp/2);
+-	nchan = length(cfreq); % reset nchan
+-end
+-
+ % Apportion the loss to OHC and IHC damage
+ [attnOHC,BW,knee,CR,attnIHC]=cochlear_loss2(HL,cfreq);%
+ 
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index f873e84..357615f 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -75,10 +75,12 @@ for ss = 1:length(namesOfAllCases)
+ 	end % }}}
+ 	[y,fs_orig] = wavread([path namesOfAllCases{ss}]);
+ 
+-	fsQualmetric = 16e3;
++	fsQualmetric = 16e3; % default sampling frequency according to Kates' original Qual_metric code
+ 	if resamp && (fsQualmetric~=fs_orig) % {{{
+ 		x = resample(x,fsQualmetric,fs_orig);
+ 		y = resample(y,fsQualmetric,fs_orig);
++	elseif not(resamp)
++		fsQualmetric = fs_orig;
+ 	end % }}}
+ 	
+ 	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss)] = ...
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+index 7c57c4f..640b551 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+@@ -1,11 +1,11 @@
+ % Wrapper function to send computeQualmetricForLoizouData.m
+ 
+-debugMode = false; % if true, change the number of workers to a number less than your test size
++debugMode = true; % if true, change the number of workers to a number less than your test size
+ resamp = false;
+-whichFunction = @Qual_metric; % FIXME depending on function
+-whichConfig = 'local';
+-minNumWorkers = 4;
+-maxNumWorkers = 4;
++whichFunction = @hasqiWithCarneyModel; % FIXME depending on function
++whichConfig = 'NeuroCluster';
++minNumWorkers = 3;
++maxNumWorkers = 3;
+ 
+ if strcmp(whichConfig,'local') % {{{
+     pathToDynastat = '~/sym/Dynastat/';
+@@ -22,7 +22,8 @@ funcInputs = {pathToDynastat,pathToNoizeus,resamp,debugMode,whichFunction};
+ numberOfOutputs = 3;
+ theFileDeps = [getFileDependencies('computeQualmetricForLoizouData');...
+ 	'~/sym/sortingInfo.mat';...
+-	getFileDependencies('/Users/abbiekre/Documents/MATLAB/ObjectiveMeasures/HASQI/Kates/Qual_metric')]; % FIXME depending on function
++	getFileDependencies(['/Users/abbiekre/Documents/MATLAB/ObjectiveMeasures/HASQI/'...
++	'myCode/hasqiWithCarneyModel'])]; % FIXME depending on function
+ thePathDeps = {pathToDynastat;pathToNoizeus;pathToCarneyModel}; % just include Carney model either way
+ 
+ sch = findResource('scheduler','Configuration',whichConfig);
+
+commit 7c97e51d290208cf3faa83fe7542c8358217ff77
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Apr 18 16:10:48 2011 -0400
+
+    Code for running qnonlin/hasqi with Kates model without resampling while
+    using nchan=32 (note that the last 7 cfreqs get chopped off so that the
+    freq range only goes to 4kHz).
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index 2358a7a..30bc5f8 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -72,6 +72,10 @@ end
+ % Set the auditory band center frequencies on an ERB scale
+ % Assumes that fsamp >= 16000
+ cfreq=frequency_ERB(nchan);
++if fsamp < 16e3
++	cfreq=cfreq(cfreq<=fsamp/2);
++	nchan = length(cfreq); % reset nchan
++end
+ 
+ % Apportion the loss to OHC and IHC damage
+ [attnOHC,BW,knee,CR,attnIHC]=cochlear_loss2(HL,cfreq);%
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+index 035fa0c..7c57c4f 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+@@ -1,7 +1,7 @@
+ % Wrapper function to send computeQualmetricForLoizouData.m
+ 
+ debugMode = false; % if true, change the number of workers to a number less than your test size
+-resamp = true;
++resamp = false;
+ whichFunction = @Qual_metric; % FIXME depending on function
+ whichConfig = 'local';
+ minNumWorkers = 4;
+
+commit ace16615cd117f249101be9400967ef7e052bcb5
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Apr 18 14:23:13 2011 -0400
+
+    Committing the code I am using to compute correlation between
+    qnonlin/hasqi with Kate's model using 32 channels and resampling to
+    16kHz. Over the previous weekend, I ran qnonlin/hasqi with Carney's model
+    using 32 chanels and not resampling (therefore, I ended up using less
+    than 22 channels because I had it chop off cfreq less than fs), and got correlation
+    around r ~ 0.56. Then ran with Carney's model using 22 channels and
+    resampling to 16kHz (which ultimately bumps up the rate to 100kHz
+    anyways since we are using the Carney model here). This yielded a
+    correlation of r ~ 0.58 for qnonlin. I am currently rerunning
+    qnonlin/hasqi with Kates' model using resampling and 32 channels (as I
+    originally intended to do) to see if this still achieves a high
+    correlation.
+    
+    Note: I am running the Carney model in 64 bit now.
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index 3690dcf..2358a7a 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -31,7 +31,7 @@ x = x(:); % make sure it's a column vector
+ y = y(:); % make sure it's a column vector
+ 
+ % Processing parameters
+-nchan=22; %Use 32 frequency bands from 150 to 8000 Hz, 22 freq bands from 150 to 4kHz.
++nchan=32; %Use 32 frequency bands from 150 to 8000 Hz, 22 freq bands from 150 to 4kHz.
+ Level1=65; %Reference level in dB SPL for RMS=1
+ 
+ % Check the file sizes
+@@ -150,8 +150,8 @@ threshold=2.5;
+ % ---------------------------------------
+ % Spectral filtering metrics
+ % Convert average gammatone output to dB SL
+-xSL=cochlea_aveSL_2tone(xg,cx',attnOHC,knee,CR,attnIHC,Level1);
+-ySL=cochlea_aveSL_2tone(yg,cy',attnOHC,knee,CR,attnIHC,Level1);
++xSL=cochlea_aveSL_2tone(xg,cx,attnOHC,knee,CR,attnIHC,Level1);
++ySL=cochlea_aveSL_2tone(yg,cy,attnOHC,knee,CR,attnIHC,Level1);
+ 
+ % Moore and Tan spectral difference metric
+ [D1,D2]=cochlea_Moore_2tone(xSL,ySL,cfreq);
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index 1968955..f873e84 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -1,5 +1,5 @@
+ function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(...
+-		pathToDynastat,pathToNoizeus,resamp,debugMode)
++		pathToDynastat,pathToNoizeus,resamp,debugMode,funcHandle)
+ 	% computeQualMetricForLoizouData computes the Qnonlin, Qlin, and HASQI values {{{
+ 	% for each of the wav files from the Dynastat/Hu/Loizou dataset
+ 	%
+@@ -62,7 +62,6 @@ unsortedHASQI = nan(length(namesOfAllCases),1);
+ % }}}
+ 
+ %% Run through each case and compute the outputs % {{{
+-fs = 8e3;
+ hearingThresholds = zeros(1,6); % normal hearing
+ delayEqualization = 1; % 1 = delay input to match output timing in each freq band
+ for ss = 1:length(namesOfAllCases)
+@@ -76,13 +75,14 @@ for ss = 1:length(namesOfAllCases)
+ 	end % }}}
+ 	[y,fs_orig] = wavread([path namesOfAllCases{ss}]);
+ 
+-	if resamp && (fs~=fs_orig) % {{{
+-		x = resample(x,fs,fs_orig);
+-		y = resample(y,fs,fs_orig);
++	fsQualmetric = 16e3;
++	if resamp && (fsQualmetric~=fs_orig) % {{{
++		x = resample(x,fsQualmetric,fs_orig);
++		y = resample(y,fsQualmetric,fs_orig);
+ 	end % }}}
+ 	
+ 	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss)] = ...
+-		hasqiWithCarneyModel(x,y,hearingThresholds,delayEqualization,fs);
++		funcHandle(x,y,hearingThresholds,delayEqualization,fsQualmetric);
+ end
+ % }}} 
+ 
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+index 8728d07..035fa0c 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+@@ -1,7 +1,8 @@
+ % Wrapper function to send computeQualmetricForLoizouData.m
+ 
+ debugMode = false; % if true, change the number of workers to a number less than your test size
+-resamp = false;
++resamp = true;
++whichFunction = @Qual_metric; % FIXME depending on function
+ whichConfig = 'local';
+ minNumWorkers = 4;
+ maxNumWorkers = 4;
+@@ -9,19 +10,20 @@ maxNumWorkers = 4;
+ if strcmp(whichConfig,'local') % {{{
+     pathToDynastat = '~/sym/Dynastat/';
+ 	pathToNoizeus = '~/sym/noizeus/';
+-	pathToModel = '/Users/abbiekre/Documents/MATLAB/CarneyModels/Bruce01_zbcatmodel2007v2/';
++	pathToCarneyModel = '/Users/abbiekre/Documents/MATLAB/CarneyModels/Bruce01_zbcatmodel2007v2/';
+ elseif strcmp(whichConfig,'NeuroCluster')
+     pathToDynastat = '/mnt/data/akressner/LoizouWavFiles/';
+ 	pathToNoizeus = '/mnt/data/akressner/Noizeus/';
+-	pathToModel = '/mnt/data/akressner/Bruce01_zbcatmodel2007v2';
++	pathToCarneyModel = '/mnt/data/akressner/Bruce01_zbcatmodel2007v2';
+ else 
+     error('You have not specified a valid configuration.');
+ end % }}}
+-funcInputs = {pathToDynastat,pathToNoizeus,resamp,debugMode};
++funcInputs = {pathToDynastat,pathToNoizeus,resamp,debugMode,whichFunction};
+ numberOfOutputs = 3;
+-theFileDeps = getFileDependencies('computeQualmetricForLoizouData');
+-theFileDeps = [theFileDeps;'~/sym/sortingInfo.mat'];
+-thePathDeps = {pathToDynastat;pathToNoizeus;pathToModel};
++theFileDeps = [getFileDependencies('computeQualmetricForLoizouData');...
++	'~/sym/sortingInfo.mat';...
++	getFileDependencies('/Users/abbiekre/Documents/MATLAB/ObjectiveMeasures/HASQI/Kates/Qual_metric')]; % FIXME depending on function
++thePathDeps = {pathToDynastat;pathToNoizeus;pathToCarneyModel}; % just include Carney model either way
+ 
+ sch = findResource('scheduler','Configuration',whichConfig);
+ job = createMatlabPoolJob(sch);
+
+commit 9610a3a293dd77fae2e585ca74eedc76133fb322
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Fri Apr 15 10:58:25 2011 -0400
+
+    Figured out why I wasn't getting the results I was expecting (Turns out
+    it wasn't an error. It was just averaging over 3 cases, which will give
+    all NaNs.) This is ready to run if I want to run it on my computer in
+    32-bit mode.
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index 7a74277..1968955 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -25,10 +25,16 @@ try
+ 
+ %% Check inputs {{{
+ 	if nargin < 4
+-		debugMode = false;
++		debugMode = true;
+ 	end
+ 	if nargin < 3
+-		resamp = true;
++		resamp = false;
++	end
++	if nargin < 2
++		pathToNoizeus='~/sym/noizeus/';
++	end
++	if nargin < 1
++		pathToDynastat='~/sym/Dynastat';
+ 	end
+ 	if pathToDynastat(end)~='/'
+ 		pathToDynastat = [pathToDynastat '/'];
+@@ -59,7 +65,7 @@ unsortedHASQI = nan(length(namesOfAllCases),1);
+ fs = 8e3;
+ hearingThresholds = zeros(1,6); % normal hearing
+ delayEqualization = 1; % 1 = delay input to match output timing in each freq band
+-parfor ss = 1:length(namesOfAllCases)
++for ss = 1:length(namesOfAllCases)
+ 
+ 	x = wavread([pathToDynastat 'clean/sp' sprintf('%02.0f',sentnumber(ss))]);
+ 	% Define the appropriate path {{{
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+index 486f93f..8728d07 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+@@ -1,14 +1,14 @@
+ % Wrapper function to send computeQualmetricForLoizouData.m
+ 
+-debugMode = true; % if true, change the number of workers to a number less than your test size
++debugMode = false; % if true, change the number of workers to a number less than your test size
+ resamp = false;
+ whichConfig = 'local';
+-minNumWorkers = 3;
+-maxNumWorkers = 3;
++minNumWorkers = 4;
++maxNumWorkers = 4;
+ 
+ if strcmp(whichConfig,'local') % {{{
+     pathToDynastat = '~/sym/Dynastat/';
+-	pathToNoizeus = '/Users/abbiekre/Documents/MATLAB/Loizou/TextbookDatabase/database/noizeus/';
++	pathToNoizeus = '~/sym/noizeus/';
+ 	pathToModel = '/Users/abbiekre/Documents/MATLAB/CarneyModels/Bruce01_zbcatmodel2007v2/';
+ elseif strcmp(whichConfig,'NeuroCluster')
+     pathToDynastat = '/mnt/data/akressner/LoizouWavFiles/';
+
+commit 2d55df8a44dbbc4caedd9bb35813994fa652905d
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Thu Apr 14 21:19:31 2011 -0400
+
+    Finished coding up hasqiWithCarneyModel (and associated files). Also did
+    a bit of debugging.  Unfortunately, the code is still not running
+    without error. Humph.
+
+diff --git a/HASQI/Kates/cochlea_Moore_2tone.m b/HASQI/Kates/cochlea_Moore_2tone.m
+index 380c866..a3214b3 100755
+--- a/HASQI/Kates/cochlea_Moore_2tone.m
++++ b/HASQI/Kates/cochlea_Moore_2tone.m
+@@ -1,4 +1,4 @@
+-function [D1 D2]=cochlea_Moore_2tone(xSL,ySL,cfreq);
++function [D1 D2]=cochlea_Moore_2tone(x,y,cfreq)
+ % Function to compute the spectral distortion metric of Moore and Tan
+ % (JAES, Vol 52, pp 900-914). The metric involves first computing the
+ % weighted differences between the reference and degraded spectra and
+@@ -22,10 +22,6 @@ function [D1 D2]=cochlea_Moore_2tone(xSL,ySL,cfreq);
+ % Unweighted sum added 5 November 2007.
+ % Version returning stds, 31 August 2008.
+ 
+-% Convert the dB SL to linear magnitude values
+-x=10.^(xSL/20);
+-y=10.^(ySL/20);
+-
+ % Normalize the level of the reference and degraded signals.
+ % This operation removes the absolute signal level as a factor.
+ xRMS=sqrt(sum(x.^2)/length(x));
+@@ -46,5 +42,3 @@ std2=sqrt(sum((d2-ave2).^2)/length(d2));
+ 
+ D1=std1;
+ D2=std2;
+-
+-
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index a86ec1f..7a74277 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -56,7 +56,7 @@ unsortedHASQI = nan(length(namesOfAllCases),1);
+ % }}}
+ 
+ %% Run through each case and compute the outputs % {{{
+-fs = 16e3;
++fs = 8e3;
+ hearingThresholds = zeros(1,6); % normal hearing
+ delayEqualization = 1; % 1 = delay input to match output timing in each freq band
+ parfor ss = 1:length(namesOfAllCases)
+@@ -70,15 +70,13 @@ parfor ss = 1:length(namesOfAllCases)
+ 	end % }}}
+ 	[y,fs_orig] = wavread([path namesOfAllCases{ss}]);
+ 
+-	if resamp % {{{
++	if resamp && (fs~=fs_orig) % {{{
+ 		x = resample(x,fs,fs_orig);
+ 		y = resample(y,fs,fs_orig);
+-	else
+-		error('This code currently does not support not resampling.');
+ 	end % }}}
+ 	
+ 	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss)] = ...
+-		Qual_metric(x,y,hearingThresholds,delayEqualization,fs);
++		hasqiWithCarneyModel(x,y,hearingThresholds,delayEqualization,fs);
+ end
+ % }}} 
+ 
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+index ad7fe44..486f93f 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+@@ -1,25 +1,27 @@
+ % Wrapper function to send computeQualmetricForLoizouData.m
+ 
+-debugMode = false; % if true, change the number of workers to a number less than your test size
+-resamp = true;
+-whichConfig = 'NeuroCluster';
+-minNumWorkers = 15;
+-maxNumWorkers = 45;
++debugMode = true; % if true, change the number of workers to a number less than your test size
++resamp = false;
++whichConfig = 'local';
++minNumWorkers = 3;
++maxNumWorkers = 3;
+ 
+-if strcmp(whichConfig,'local')
++if strcmp(whichConfig,'local') % {{{
+     pathToDynastat = '~/sym/Dynastat/';
+ 	pathToNoizeus = '/Users/abbiekre/Documents/MATLAB/Loizou/TextbookDatabase/database/noizeus/';
++	pathToModel = '/Users/abbiekre/Documents/MATLAB/CarneyModels/Bruce01_zbcatmodel2007v2/';
+ elseif strcmp(whichConfig,'NeuroCluster')
+     pathToDynastat = '/mnt/data/akressner/LoizouWavFiles/';
+ 	pathToNoizeus = '/mnt/data/akressner/Noizeus/';
++	pathToModel = '/mnt/data/akressner/Bruce01_zbcatmodel2007v2';
+ else 
+     error('You have not specified a valid configuration.');
+-end
++end % }}}
+ funcInputs = {pathToDynastat,pathToNoizeus,resamp,debugMode};
+ numberOfOutputs = 3;
+ theFileDeps = getFileDependencies('computeQualmetricForLoizouData');
+ theFileDeps = [theFileDeps;'~/sym/sortingInfo.mat'];
+-thePathDeps = {pathToDynastat;pathToNoizeus};
++thePathDeps = {pathToDynastat;pathToNoizeus;pathToModel};
+ 
+ sch = findResource('scheduler','Configuration',whichConfig);
+ job = createMatlabPoolJob(sch);
+
+commit c2f139e4382bfe7a8f13031ba27e63f23ec1564d
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Wed Apr 13 18:47:56 2011 -0400
+
+    Making progress towards implementing HASQI with the Carney model. Note
+    that, along the way, I have fixed some bugs and inefficiencies in Kate's
+    Qual_metric and cochlea_envcomp_2tone files.
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index f8dee4d..3690dcf 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -92,19 +92,21 @@ xdB=zeros(nchan,npts); %Initialize storage for the IHC output
+ ydB=zeros(nchan,npts);
+ xg=zeros(nchan,1); %Storage for the RMS levels in each gammatone filter
+ yg=zeros(nchan,1);
++cx=zeros(nchan,1); %Store avg gain of control, clean sigal
++cy=zeros(nchan,1); %Store avg gain of audio, degraded signal
+ 
+ for n=1:nchan
+ %	Output of the linear gammatone filters, no attenuation
+     [xbm,xe]=gammatone_m(xmid,1,BW(n),fsamp,cfreq(n)); %Input, audio
+-    [xcbm,xce]=gammatone_m(xmid,1,BW1(n),fsamp,cfreq1(n)); %Input, control
++    [~,xce]=gammatone_m(xmid,1,BW1(n),fsamp,cfreq1(n)); %Input, control
+ 	[ybm,ye]=gammatone_m(ymid,1,BW(n),fsamp,cfreq(n)); %Degraded, audio
+-    [ycbm,yce]=gammatone_m(ymid,1,BW1(n),fsamp,cfreq1(n)); %Degraded, control
++    [~,yce]=gammatone_m(ymid,1,BW1(n),fsamp,cfreq1(n)); %Degraded, control
+       
+     % Correct for the delay between the input and output
+ 	if eq == 1
+     	npts=length(xbm);
+    		xy=xcorr(xbm,ybm); %Cross-correlation of the signals
+-    	[s,i]=max(xy); %Maximum of the cross-correlation
++    	[~,i]=max(xy); %Maximum of the cross-correlation
+     	delay=npts-i; %Bulk delay
+     	delay=max(delay,0); %Preclude negative delays (time advance)
+     	z=zeros(delay,1); %Back up from the ccorr peak location
+@@ -121,9 +123,7 @@ for n=1:nchan
+     cy(n)=sqrt(sum(yce.^2)/length(yce));
+ 
+ %	Equate the long-term RMS energies in the two filter outputs
+-	xRMS=sqrt(sum(xe.^2)/npts); %RMS clean signal energy
+-	yRMS=sqrt(sum(ye.^2)/npts); %RMS degraded signal energy
+-	xgain=yRMS/xRMS; %Gain to match the input level to the output
++	xgain=yg(n)/xg(n); %Gain to match the input level to the output
+ 	xe=xgain*xe; %Scale the clean signal envelope
+     xce=xgain*xce; %Scale the reference control envelope
+ 
+@@ -145,7 +145,7 @@ yenv=cochlea_env(ydB,segsize,fsamp);
+ % Noise and distortion metrics
+ % Compute the mel cepstrum correlations
+ threshold=2.5;
+-[cxy,mcoef]=cochlea_melcor(xenv,yenv,threshold);
++[cxy,~]=cochlea_melcor(xenv,yenv,threshold);
+ 
+ % ---------------------------------------
+ % Spectral filtering metrics
+diff --git a/HASQI/Kates/cochlea_envcomp_2tone.m b/HASQI/Kates/cochlea_envcomp_2tone.m
+index a44ab4f..7c70c05 100755
+--- a/HASQI/Kates/cochlea_envcomp_2tone.m
++++ b/HASQI/Kates/cochlea_envcomp_2tone.m
+@@ -33,7 +33,7 @@ thrHigh=100.0; %Upper compression threshold
+ small=1.0e-30;
+ logenv=max(control,small); %Don't want to take logarithm of zero or neg
+ logenv=Level1 + 20*log10(logenv);
+-logen=min(logenv,thrHigh); %Clip signal levels above the upper threshold
++logenv=min(logenv,thrHigh); %Clip signal levels above the upper threshold
+ logenv=max(logenv,thrLow); %Clip signal at the lower threshold
+ 
+ % Compute the compression gain in dB
+
+commit 6d0363a1a10b352cbf18d99b80f6055e7cf74806
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Apr 11 20:52:12 2011 +0000
+
+    Working code for computing the correlation between the Loizou dataset (with normalization on the individual scores per subject and per experiment if desired) and Kates's Qualmetric code. Note that I am just using resample to get the 8kHz Loizou wav files up to the required 16kHz.
+
+diff --git a/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m b/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m
+index 53a9918..bbd21bb 100644
+--- a/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m
++++ b/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m
+@@ -1,10 +1,20 @@
+ function [r,stderror] = calcCorrelationQualmetricIndividLoizouData( ...
+-	pathToObj, pathToSubj)
++	pathToSubj,pathToObj,whichObjMeasure)
++
++	if nargin < 3
++		whichObjMeasure = 'hasqi';
++	end
++	if nargin < 2
++		pathToObj = '~/sym/QnonlinQlinHASQI_resampTo16k.mat';
++	end
++	if isempty(pathToObj)
++		pathToObj = '~/sym/QnonlinQlinHASQI_resampTo16k.mat';
++	end
++
+ 
+ 	%% Load data {{{
+-	obj = load(pathToObj); % size of each matrix will be 16x6x5x3
+-	subj = load(pathToSubj); % NOTE: use sortIndividLoizouData to sort 
+-							 % and normalize the individual scores from 
+-							 % the xls sheet
++	subj = load(pathToSubj);
++	obj = load(pathToObj);
+ 	% }}}
+ 	
++	[r,stderror] = pearson(obj.(whichObjMeasure)(:),subj.subj(:));
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index d69a59d..a86ec1f 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -46,7 +46,7 @@ namesOfAllCases = [namesOfAllCases; namesOfControlCases_load];
+ if debugMode % {{{
+ 	namesOfAllCases = namesOfAllCases(1:3) %#ok disp the test cases to the command window
+ end % }}}
+-[aa,bb,cc,dd,maxSizeInfo] = sortLoizouCaseIntoParams(namesOfAllCases,'wav');
++[algorithm,snr,noisetype,sentnumber,maxSizeInfo] = sortLoizouCaseIntoParams(namesOfAllCases,'wav');
+ % }}}
+ 
+ %% Initialize all the unsorted versions of the outputs % {{{
+@@ -61,7 +61,7 @@ hearingThresholds = zeros(1,6); % normal hearing
+ delayEqualization = 1; % 1 = delay input to match output timing in each freq band
+ parfor ss = 1:length(namesOfAllCases)
+ 
+-	x = wavread([pathToDynastat 'clean/sp' sprintf('%02.0f',dd(ss))]);
++	x = wavread([pathToDynastat 'clean/sp' sprintf('%02.0f',sentnumber(ss))]);
+ 	% Define the appropriate path {{{
+ 	if ss <= numberOfCasesBeforeNoizeus
+ 		path = pathToDynastat;
+@@ -89,12 +89,24 @@ HASQI = nan(maxSizeInfo);
+ % }}} 
+ 
+ %% Sort all the outputs {{{
+-ind = sub2ind(maxSizeInfo,aa,bb,cc,dd);
++ind = sub2ind(maxSizeInfo,algorithm,snr,noisetype,sentnumber);
+ Qnonlin(ind) = unsortedQnonlin;
+ Qlin(ind) = unsortedQlin;
+ HASQI(ind) = unsortedHASQI;
+ % }}}
+ 
++%% Remove the Nans {{{
++Qnonlin(:,:,:,5:5:20) = [];
++Qlin(:,:,:,5:5:20) = [];
++HASQI(:,:,:,5:5:20) = [];
++% }}}
++
++%% Average over sentences {{{
++Qnonlin = mean(Qnonlin,4);
++Qlin = mean(Qlin,4);
++HASQI = mean(HASQI,4);
++% }}}
++
+ %% Send an email upon completion {{{
+ if not(debugMode)
+ 	send_mail('abbiekressner+matlab@gmail.com','Job finished.');
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+index 20dcf6d..ad7fe44 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+@@ -1,10 +1,10 @@
+ % Wrapper function to send computeQualmetricForLoizouData.m
+ 
+-debugMode = false; % change the number of workers to a number less than your test size
++debugMode = false; % if true, change the number of workers to a number less than your test size
+ resamp = true;
+ whichConfig = 'NeuroCluster';
+ minNumWorkers = 15;
+-maxNumWorkers = 30;
++maxNumWorkers = 45;
+ 
+ if strcmp(whichConfig,'local')
+     pathToDynastat = '~/sym/Dynastat/';
+diff --git a/HASQI/Kates/getSortNormalizeAndAvgIndividLoizouScores.m b/HASQI/Kates/getSortNormalizeAndAvgIndividLoizouScores.m
+index 6baeb91..2183136 100644
+--- a/HASQI/Kates/getSortNormalizeAndAvgIndividLoizouScores.m
++++ b/HASQI/Kates/getSortNormalizeAndAvgIndividLoizouScores.m
+@@ -1,4 +1,4 @@
+-function subj = sortIndividLoizouData(normalizationMethod,subjTest,pathToXls)
++function subj = getSortNormalizeAndAvgIndividLoizouScores(normalizationMethod,subjTest,pathToXls)
+ 
+ 	%% Check inputs and define variables based on normalizationMethod {{{
+ 	if nargin < 3 % {{{
+@@ -15,6 +15,12 @@ function subj = sortIndividLoizouData(normalizationMethod,subjTest,pathToXls)
+ 		case 2
+ 			xlssheet = 'Transformed-ratings';
+ 			funcHandle = @normalizeToZeroAndOne;
++		case 3
++			xlssheet = 'Raw-ratings';
++			funcHandle = @normalizeToZeroAndOne;
++		case 4
++			xlssheet = 'Raw-ratings';
++			funcHandle = @normalizeByZscoresPerSubj;
+ 	end
+ 	% }}}
+ 
+@@ -22,13 +28,14 @@ function subj = sortIndividLoizouData(normalizationMethod,subjTest,pathToXls)
+ 	[~,~,xls] = xlsread(pathToXls,xlssheet);
+ 	xls = xls(2:end,:); % get rid of title line
+ 	scores = cell2mat(xls(:,subjTest+4)); % put the scores into a vector
+-		% add 4 since subj, bak, and ovrl are in cols 5:7
++		% add 4 since sig, bak, and ovrl are in cols 5:7
++		%
+ 	experimentNumber = cell2mat(xls(:,1));
+ 	subjectNumber = cell2mat(xls(:,3));
+ 	% }}}
+ 	
+ 	%% Get the sorting info {{{
+-	[algorithm,snr,noisetype,talker,maxSizeInfo] = sortLoizouCaseIntoParams(xls,'individScores');
++	[algorithm,snr,noisetype,talker,howManyValsPerVariable] = sortLoizouCaseIntoParams(xls,'individScores');
+ 	% }}}
+ 	
+ 	%% Throw out the "R" cases {{{
+@@ -46,9 +53,7 @@ function subj = sortIndividLoizouData(normalizationMethod,subjTest,pathToXls)
+ 	% }}}
+ 	
+ 	%% Sort scores into the multi-dimensional subj matrix {{{
+-	subj = nan([maxSizeInfo(1:3)-1 maxSizeInfo(4) max(subjectNumber) max(experimentNumber)]); 
+-		% use maxSizeInfo(1:3)-1 since we got rid of the last possibilities in each of
+-		% these dimensions when we removed the "R" cases
++	subj = nan([howManyValsPerVariable max(subjectNumber) max(experimentNumber)]); 
+ 	ind = sub2ind(size(subj),algorithm,snr,noisetype,talker,subjectNumber,experimentNumber);
+ 	subj(ind) = scores; 
+ 	% }}}
+diff --git a/HASQI/Kates/normalizeByZscoresPerSubj.m b/HASQI/Kates/normalizeByZscoresPerSubj.m
+new file mode 100644
+index 0000000..9a08271
+--- /dev/null
++++ b/HASQI/Kates/normalizeByZscoresPerSubj.m
+@@ -0,0 +1,10 @@
++function scores = normalizeByZscoresPerSubj(scores,subject,experiment)
++% the third input (experiment) is included so that it has the same call 
++% format as the other normalization functions
++
++	listOfSubjects = unique(subject);
++
++	for ss = 1:length(listOfSubjects)
++		logicalMask = (subject==listOfSubjects(ss));
++		scores(logicalMask) = zscore(scores(logicalMask));
++	end
+diff --git a/HASQI/Kates/normalizeByZscoresPerSubjAndExp.m b/HASQI/Kates/normalizeByZscoresPerSubjAndExp.m
+index 64db59a..3be036a 100644
+--- a/HASQI/Kates/normalizeByZscoresPerSubjAndExp.m
++++ b/HASQI/Kates/normalizeByZscoresPerSubjAndExp.m
+@@ -1,10 +1,4 @@
+ function scores = normalizeByZscoresPerSubjAndExp(scores,subject,experiment)
+-% NOTE: For cases where you aren't splitting by experiment, just exclude the third input variable
+-
+-	if nargin < 3
+-		experiment = ones(size(subject));
+-	end
+-
+ 
+ 
+ 	listOfSubjects = unique(subject);
+diff --git a/HASQI/Kates/normalizeToZeroAndOne.m b/HASQI/Kates/normalizeToZeroAndOne.m
+index 2669085..e455312 100644
+--- a/HASQI/Kates/normalizeToZeroAndOne.m
++++ b/HASQI/Kates/normalizeToZeroAndOne.m
+@@ -2,10 +2,10 @@ function scores = normalizeToZeroAndOne(scores,subject,experiment)
+ 
+ 
+ 	listOfSubjects = unique(subject);
+-	listofExperiments = unique(experiment);
++	listOfExperiments = unique(experiment);
+ 
+ 	for ss = 1:length(listOfSubjects)
+-		for ee = 1:length(listofExperiments)
++		for ee = 1:length(listOfExperiments)
+ 			logicalMask = (subject==listOfSubjects(ss))&(experiment==listOfExperiments(ee));
+ 			scores(logicalMask) = scores(logicalMask) - min(scores(logicalMask)); % subtract the minimum
+ 			scores(logicalMask) = scores(logicalMask)/max(scores(logicalMask)); % normalize to one
+
+commit 13a3e28b704a1c73bbe209c372c4df90a47026e3
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Apr 11 18:10:30 2011 +0000
+
+    Renaming sortIndividLoizouData to getSortNormalizeAndAvgIndividLoizouScores since this is actually what the code does.
+
+diff --git a/HASQI/Kates/getSortNormalizeAndAvgIndividLoizouScores.m b/HASQI/Kates/getSortNormalizeAndAvgIndividLoizouScores.m
+new file mode 100644
+index 0000000..6baeb91
+--- /dev/null
++++ b/HASQI/Kates/getSortNormalizeAndAvgIndividLoizouScores.m
+@@ -0,0 +1,85 @@
++function subj = sortIndividLoizouData(normalizationMethod,subjTest,pathToXls)
++
++	%% Check inputs and define variables based on normalizationMethod {{{
++	if nargin < 3 % {{{
++		pathToXls = ['/Users/abbiekre/Documents/MATLAB/Loizou/' ...
++			'Hu_SubjListenerResults/individSubjectiveQualityScores.xls'];
++	end % }}}
++	if nargin < 2 % {{{
++		subjTest = 3; % {1=sig, 2=bak, 3 = ovrl} NOTE: sig and bak contains 0s, which are not a choice, so you should deal with that in some way (exclude those scores perhaps??)
++	end % }}}
++	switch normalizationMethod
++		case 1
++			xlssheet = 'Raw-ratings';
++			funcHandle = @normalizeByZscoresPerSubjAndExp;
++		case 2
++			xlssheet = 'Transformed-ratings';
++			funcHandle = @normalizeToZeroAndOne;
++	end
++	% }}}
++
++	%% Load the scores {{{
++	[~,~,xls] = xlsread(pathToXls,xlssheet);
++	xls = xls(2:end,:); % get rid of title line
++	scores = cell2mat(xls(:,subjTest+4)); % put the scores into a vector
++		% add 4 since subj, bak, and ovrl are in cols 5:7
++	experimentNumber = cell2mat(xls(:,1));
++	subjectNumber = cell2mat(xls(:,3));
++	% }}}
++	
++	%% Get the sorting info {{{
++	[algorithm,snr,noisetype,talker,maxSizeInfo] = sortLoizouCaseIntoParams(xls,'individScores');
++	% }}}
++	
++	%% Throw out the "R" cases {{{
++	scores(algorithm==16) = [];
++	experimentNumber(algorithm==16) = [];
++	subjectNumber(algorithm==16) = [];
++	snr(algorithm==16) = [];
++	noisetype(algorithm==16) = [];
++	talker(algorithm==16) = [];
++	algorithm(algorithm==16) = [];
++	% }}}
++
++	%% Call the appropriate function to normalize the scores {{{
++	scores = funcHandle(scores,subjectNumber,experimentNumber);
++	% }}}
++	
++	%% Sort scores into the multi-dimensional subj matrix {{{
++	subj = nan([maxSizeInfo(1:3)-1 maxSizeInfo(4) max(subjectNumber) max(experimentNumber)]); 
++		% use maxSizeInfo(1:3)-1 since we got rid of the last possibilities in each of
++		% these dimensions when we removed the "R" cases
++	ind = sub2ind(size(subj),algorithm,snr,noisetype,talker,subjectNumber,experimentNumber);
++	subj(ind) = scores; 
++	% }}}
++
++	%% Get rid of extra NaNs and average over talker, subject, and experiment {{{
++	% The code in this section accomplishes the following, but about 2.3 times faster {{{
++	%{
++	mean = nan(size(subj,1),size(subj,2),size(subj,3));
++	for ii = 1:size(subj,1),
++		for jj = 1:size(subj,2),
++			for kk = 1:size(subj,3),
++				temp = reshape(subj(ii,jj,kk,:,:,:),1,[]);
++				if isnan(temp(1))
++					mean(ii,jj,kk) = mean(temp(length(temp)/2+1:end));
++				else
++					mean(ii,jj,kk) = mean(temp(1:length(temp)/2));
++				end
++			end
++		end
++	end
++	%}
++	% }}}
++	A = size(subj,1);
++	B = size(subj,2);
++	C = size(subj,3);
++
++	subj = reshape(subj,A,B,C,[]);
++	subj = shiftdim(subj,3);
++	subj = reshape(subj,[],1);
++	subj(isnan(subj)) = [];
++	subj = reshape(subj,[],A,B,C);
++	subj = shiftdim(subj,1);
++	subj = mean(subj,4);
++	% }}}
+diff --git a/HASQI/Kates/sortIndividLoizouData.m b/HASQI/Kates/sortIndividLoizouData.m
+deleted file mode 100644
+index 6baeb91..0000000
+--- a/HASQI/Kates/sortIndividLoizouData.m
++++ /dev/null
+@@ -1,85 +0,0 @@
+-function subj = sortIndividLoizouData(normalizationMethod,subjTest,pathToXls)
+-
+-	%% Check inputs and define variables based on normalizationMethod {{{
+-	if nargin < 3 % {{{
+-		pathToXls = ['/Users/abbiekre/Documents/MATLAB/Loizou/' ...
+-			'Hu_SubjListenerResults/individSubjectiveQualityScores.xls'];
+-	end % }}}
+-	if nargin < 2 % {{{
+-		subjTest = 3; % {1=sig, 2=bak, 3 = ovrl} NOTE: sig and bak contains 0s, which are not a choice, so you should deal with that in some way (exclude those scores perhaps??)
+-	end % }}}
+-	switch normalizationMethod
+-		case 1
+-			xlssheet = 'Raw-ratings';
+-			funcHandle = @normalizeByZscoresPerSubjAndExp;
+-		case 2
+-			xlssheet = 'Transformed-ratings';
+-			funcHandle = @normalizeToZeroAndOne;
+-	end
+-	% }}}
+-
+-	%% Load the scores {{{
+-	[~,~,xls] = xlsread(pathToXls,xlssheet);
+-	xls = xls(2:end,:); % get rid of title line
+-	scores = cell2mat(xls(:,subjTest+4)); % put the scores into a vector
+-		% add 4 since subj, bak, and ovrl are in cols 5:7
+-	experimentNumber = cell2mat(xls(:,1));
+-	subjectNumber = cell2mat(xls(:,3));
+-	% }}}
+-	
+-	%% Get the sorting info {{{
+-	[algorithm,snr,noisetype,talker,maxSizeInfo] = sortLoizouCaseIntoParams(xls,'individScores');
+-	% }}}
+-	
+-	%% Throw out the "R" cases {{{
+-	scores(algorithm==16) = [];
+-	experimentNumber(algorithm==16) = [];
+-	subjectNumber(algorithm==16) = [];
+-	snr(algorithm==16) = [];
+-	noisetype(algorithm==16) = [];
+-	talker(algorithm==16) = [];
+-	algorithm(algorithm==16) = [];
+-	% }}}
+-
+-	%% Call the appropriate function to normalize the scores {{{
+-	scores = funcHandle(scores,subjectNumber,experimentNumber);
+-	% }}}
+-	
+-	%% Sort scores into the multi-dimensional subj matrix {{{
+-	subj = nan([maxSizeInfo(1:3)-1 maxSizeInfo(4) max(subjectNumber) max(experimentNumber)]); 
+-		% use maxSizeInfo(1:3)-1 since we got rid of the last possibilities in each of
+-		% these dimensions when we removed the "R" cases
+-	ind = sub2ind(size(subj),algorithm,snr,noisetype,talker,subjectNumber,experimentNumber);
+-	subj(ind) = scores; 
+-	% }}}
+-
+-	%% Get rid of extra NaNs and average over talker, subject, and experiment {{{
+-	% The code in this section accomplishes the following, but about 2.3 times faster {{{
+-	%{
+-	mean = nan(size(subj,1),size(subj,2),size(subj,3));
+-	for ii = 1:size(subj,1),
+-		for jj = 1:size(subj,2),
+-			for kk = 1:size(subj,3),
+-				temp = reshape(subj(ii,jj,kk,:,:,:),1,[]);
+-				if isnan(temp(1))
+-					mean(ii,jj,kk) = mean(temp(length(temp)/2+1:end));
+-				else
+-					mean(ii,jj,kk) = mean(temp(1:length(temp)/2));
+-				end
+-			end
+-		end
+-	end
+-	%}
+-	% }}}
+-	A = size(subj,1);
+-	B = size(subj,2);
+-	C = size(subj,3);
+-
+-	subj = reshape(subj,A,B,C,[]);
+-	subj = shiftdim(subj,3);
+-	subj = reshape(subj,[],1);
+-	subj(isnan(subj)) = [];
+-	subj = reshape(subj,[],A,B,C);
+-	subj = shiftdim(subj,1);
+-	subj = mean(subj,4);
+-	% }}}
+
+commit 6fb2079970be30a7672702da09e1a608c91164bd
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Apr 11 18:09:09 2011 +0000
+
+    sortIndividData is coded and working.
+
+diff --git a/HASQI/Kates/sortIndividLoizouData.m b/HASQI/Kates/sortIndividLoizouData.m
+index 3c07c08..6baeb91 100644
+--- a/HASQI/Kates/sortIndividLoizouData.m
++++ b/HASQI/Kates/sortIndividLoizouData.m
+@@ -22,7 +22,7 @@ function subj = sortIndividLoizouData(normalizationMethod,subjTest,pathToXls)
+ 	[~,~,xls] = xlsread(pathToXls,xlssheet);
+ 	xls = xls(2:end,:); % get rid of title line
+ 	scores = cell2mat(xls(:,subjTest+4)); % put the scores into a vector
+-		% atalker 4 since subj, bak, and ovrl are in cols 5:7
++		% add 4 since subj, bak, and ovrl are in cols 5:7
+ 	experimentNumber = cell2mat(xls(:,1));
+ 	subjectNumber = cell2mat(xls(:,3));
+ 	% }}}
+@@ -54,30 +54,32 @@ function subj = sortIndividLoizouData(normalizationMethod,subjTest,pathToXls)
+ 	% }}}
+ 
+ 	%% Get rid of extra NaNs and average over talker, subject, and experiment {{{
+-	% The code in this section accomplishes the following, but about 2.28 times faster {{{
+-	% TODO: THIS ISN'T WORKING ANYMORE. IT WORKED, AND NOW IT'S NOT WORKING :(
++	% The code in this section accomplishes the following, but about 2.3 times faster {{{
+ 	%{
+-		mean = nan(size(mean1));
+-		for ii = 1:size(subj,1),
+-			for jj = 1:size(subj,2),
+-				for kk = 1:size(subj,3),
+-					temp = reshape(subj(ii,jj,kk,:,:,:),1,[]);
+-					if isnan(temp(1))
+-						temp = temp(length(temp)/2+1:end);
+-					else
+-						temp = temp(1:length(temp)/2);
+-					end
+-					mean(ii,jj,kk) = mean(temp);
++	mean = nan(size(subj,1),size(subj,2),size(subj,3));
++	for ii = 1:size(subj,1),
++		for jj = 1:size(subj,2),
++			for kk = 1:size(subj,3),
++				temp = reshape(subj(ii,jj,kk,:,:,:),1,[]);
++				if isnan(temp(1))
++					mean(ii,jj,kk) = mean(temp(length(temp)/2+1:end));
++				else
++					mean(ii,jj,kk) = mean(temp(1:length(temp)/2));
+ 				end
+ 			end
+ 		end
++	end
+ 	%}
+ 	% }}}
+-	subj = reshape(subj,size(subj,1),size(subj,2),size(subj,3),[]);
++	A = size(subj,1);
++	B = size(subj,2);
++	C = size(subj,3);
++
++	subj = reshape(subj,A,B,C,[]);
+ 	subj = shiftdim(subj,3);
+ 	subj = reshape(subj,[],1);
+ 	subj(isnan(subj)) = [];
+-	subj = reshape(subj,[],size(subj,1),size(subj,2),size(subj3));
++	subj = reshape(subj,[],A,B,C);
+ 	subj = shiftdim(subj,1);
+ 	subj = mean(subj,4);
+ 	% }}}
+
+commit c58d4dee4693c733a96085ae02c687dc9f0ed74e
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Fri Apr 8 19:58:55 2011 +0000
+
+    Adding two test scripts for computing the mean in sortLoizouCaseIntoParams.  They were working, and now they aren't.  I'm confused.
+
+diff --git a/HASQI/Kates/sortIndividLoizouData.m b/HASQI/Kates/sortIndividLoizouData.m
+index 9560f94..3c07c08 100644
+--- a/HASQI/Kates/sortIndividLoizouData.m
++++ b/HASQI/Kates/sortIndividLoizouData.m
+@@ -53,10 +53,31 @@ function subj = sortIndividLoizouData(normalizationMethod,subjTest,pathToXls)
+ 	subj(ind) = scores; 
+ 	% }}}
+ 
+-	%% Get rid of extra NaNs {{{
+-	% TODO
++	%% Get rid of extra NaNs and average over talker, subject, and experiment {{{
++	% The code in this section accomplishes the following, but about 2.28 times faster {{{
++	% TODO: THIS ISN'T WORKING ANYMORE. IT WORKED, AND NOW IT'S NOT WORKING :(
++	%{
++		mean = nan(size(mean1));
++		for ii = 1:size(subj,1),
++			for jj = 1:size(subj,2),
++				for kk = 1:size(subj,3),
++					temp = reshape(subj(ii,jj,kk,:,:,:),1,[]);
++					if isnan(temp(1))
++						temp = temp(length(temp)/2+1:end);
++					else
++						temp = temp(1:length(temp)/2);
++					end
++					mean(ii,jj,kk) = mean(temp);
++				end
++			end
++		end
++	%}
+ 	% }}}
+-
+-	%% Average over talker, subject, and experiment{{{
++	subj = reshape(subj,size(subj,1),size(subj,2),size(subj,3),[]);
++	subj = shiftdim(subj,3);
++	subj = reshape(subj,[],1);
++	subj(isnan(subj)) = [];
++	subj = reshape(subj,[],size(subj,1),size(subj,2),size(subj3));
++	subj = shiftdim(subj,1);
+ 	subj = mean(subj,4);
+ 	% }}}
+
+commit 99af8e2799c91f932db0076e576f2bd9d516b161
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Thu Mar 31 22:24:14 2011 +0000
+
+    Work in progress... still trying to make code able to sort and average individual scores. Note that I should also work to average the object qnonlin, qlin, and hasqi scores averages as well.
+
+diff --git a/HASQI/Kates/normalizeByZscoresPerSubjAndExp.m b/HASQI/Kates/normalizeByZscoresPerSubjAndExp.m
+new file mode 100644
+index 0000000..64db59a
+--- /dev/null
++++ b/HASQI/Kates/normalizeByZscoresPerSubjAndExp.m
+@@ -0,0 +1,32 @@
++function scores = normalizeByZscoresPerSubjAndExp(scores,subject,experiment)
++% NOTE: For cases where you aren't splitting by experiment, just exclude the third input variable
++
++	if nargin < 3
++		experiment = ones(size(subject));
++	end
++
++
++
++	listOfSubjects = unique(subject);
++	listOfExperiments = unique(experiment);
++
++	for ss = 1:length(listOfSubjects)
++		for ee = 1:length(listOfExperiments)
++			logicalMask = (subject==listOfSubjects(ss))&(experiment==listOfExperiments(ee));
++			scores(logicalMask) = zscore(scores(logicalMask));
++		end
++	end
++	
++	
++	
++%{ 
++% Code for old method	
++	indOfNonnan = not(isnan(individScores));
++	[~,~,~,subject,session] = ind2sub(size(individScores),indOfNonnan);
++	for ii = 1:size(individScores,4)
++		for jj = 1:size(individScores,5)
++			individScores(indOfNonnan( (subject==ii)&(session==jj) )) = ...
++				zscore(individScores(indOfNonnan( (subject==ii)&(session==jj) )));
++		end
++	end
++%}
+diff --git a/HASQI/Kates/normalizeToZeroAndOne.m b/HASQI/Kates/normalizeToZeroAndOne.m
+new file mode 100644
+index 0000000..2669085
+--- /dev/null
++++ b/HASQI/Kates/normalizeToZeroAndOne.m
+@@ -0,0 +1,28 @@
++function scores = normalizeToZeroAndOne(scores,subject,experiment)
++
++
++	listOfSubjects = unique(subject);
++	listofExperiments = unique(experiment);
++
++	for ss = 1:length(listOfSubjects)
++		for ee = 1:length(listofExperiments)
++			logicalMask = (subject==listOfSubjects(ss))&(experiment==listOfExperiments(ee));
++			scores(logicalMask) = scores(logicalMask) - min(scores(logicalMask)); % subtract the minimum
++			scores(logicalMask) = scores(logicalMask)/max(scores(logicalMask)); % normalize to one
++		end
++	end
++
++
++%{ 
++% old method	
++	indOfNonnan = not(isnan(individScores));
++	[~,~,~,subject,~] = ind2sub(size(individScores),indOfNonnan);
++	for ii = 1:size(individScores,4)
++		whichInds = find( subject == ii );
++		x = individScores(indOfNonnan(whichInds)); % for ease of reading, temporarily store the scores
++		x = x - min(x(:)); % subtract out the subject's lowest rating
++		x = x/max(x(:)); % divide by the largest number
++		individScores(indOfNonnan(whichInds)) = x;
++	end
++
++%}
+diff --git a/HASQI/Kates/sortIndividLoizouData.m b/HASQI/Kates/sortIndividLoizouData.m
+index 47b60dc..9560f94 100644
+--- a/HASQI/Kates/sortIndividLoizouData.m
++++ b/HASQI/Kates/sortIndividLoizouData.m
+@@ -1,10 +1,62 @@
+-function individScores = sortIndividLoizouData(pathToXls,normalizationMethod)
++function subj = sortIndividLoizouData(normalizationMethod,subjTest,pathToXls)
+ 
++	%% Check inputs and define variables based on normalizationMethod {{{
++	if nargin < 3 % {{{
++		pathToXls = ['/Users/abbiekre/Documents/MATLAB/Loizou/' ...
++			'Hu_SubjListenerResults/individSubjectiveQualityScores.xls'];
++	end % }}}
++	if nargin < 2 % {{{
++		subjTest = 3; % {1=sig, 2=bak, 3 = ovrl} NOTE: sig and bak contains 0s, which are not a choice, so you should deal with that in some way (exclude those scores perhaps??)
++	end % }}}
++	switch normalizationMethod
++		case 1
++			xlssheet = 'Raw-ratings';
++			funcHandle = @normalizeByZscoresPerSubjAndExp;
++		case 2
++			xlssheet = 'Transformed-ratings';
++			funcHandle = @normalizeToZeroAndOne;
++	end
++	% }}}
+ 
+-		[~,~,xls] = xlsread(pathToXls,'Transformed-ratings');
+-		% TODO: Disregard the "R" cases
+-		[aa,bb,cc,~,maxSizeInfo] = sortLoizouCaseIntoParams(xls(2:end,:),'individScores');
+-		% TODO: I need to figure out how to identify dd
+-		% ee should be the subj number, which is xls(:,3)
+-		ind = sub2ind([maxSizeInfo max(ee)],aa,bb,cc,dd,ee);
+-		% normalize scores for each subject, depending on the normalization method
++	%% Load the scores {{{
++	[~,~,xls] = xlsread(pathToXls,xlssheet);
++	xls = xls(2:end,:); % get rid of title line
++	scores = cell2mat(xls(:,subjTest+4)); % put the scores into a vector
++		% atalker 4 since subj, bak, and ovrl are in cols 5:7
++	experimentNumber = cell2mat(xls(:,1));
++	subjectNumber = cell2mat(xls(:,3));
++	% }}}
++	
++	%% Get the sorting info {{{
++	[algorithm,snr,noisetype,talker,maxSizeInfo] = sortLoizouCaseIntoParams(xls,'individScores');
++	% }}}
++	
++	%% Throw out the "R" cases {{{
++	scores(algorithm==16) = [];
++	experimentNumber(algorithm==16) = [];
++	subjectNumber(algorithm==16) = [];
++	snr(algorithm==16) = [];
++	noisetype(algorithm==16) = [];
++	talker(algorithm==16) = [];
++	algorithm(algorithm==16) = [];
++	% }}}
++
++	%% Call the appropriate function to normalize the scores {{{
++	scores = funcHandle(scores,subjectNumber,experimentNumber);
++	% }}}
++	
++	%% Sort scores into the multi-dimensional subj matrix {{{
++	subj = nan([maxSizeInfo(1:3)-1 maxSizeInfo(4) max(subjectNumber) max(experimentNumber)]); 
++		% use maxSizeInfo(1:3)-1 since we got rid of the last possibilities in each of
++		% these dimensions when we removed the "R" cases
++	ind = sub2ind(size(subj),algorithm,snr,noisetype,talker,subjectNumber,experimentNumber);
++	subj(ind) = scores; 
++	% }}}
++
++	%% Get rid of extra NaNs {{{
++	% TODO
++	% }}}
++
++	%% Average over talker, subject, and experiment{{{
++	subj = mean(subj,4);
++	% }}}
+
+commit db4b7457169cdb396baa40b891523f6445766765
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Wed Mar 30 22:20:46 2011 +0000
+
+    Code I used to compute /Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/QnonlinQlinHASQI_resampTo16k.mat today on the cluster.  Note that I wrote over the .mat file I previously had saved in the same location.  This new file probably has the same values.  I just reran in using the new sorting method to make sure it will be consistent with the sorting I do for the subjective scores.
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index 6c00ecb..d69a59d 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -1,5 +1,5 @@
+ function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(...
+-		dirToWav,resamp,debugMode)
++		pathToDynastat,pathToNoizeus,resamp,debugMode)
+ 	% computeQualMetricForLoizouData computes the Qnonlin, Qlin, and HASQI values {{{
+ 	% for each of the wav files from the Dynastat/Hu/Loizou dataset
+ 	%
+@@ -24,25 +24,28 @@ function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(...
+ try
+ 
+ %% Check inputs {{{
+-	if nargin < 3
++	if nargin < 4
+ 		debugMode = false;
+ 	end
+-	if nargin < 2
++	if nargin < 3
+ 		resamp = true;
+ 	end
+-	if not(iscell(dirToWav))
+-		dirToWav = {dirToWav};
++	if pathToDynastat(end)~='/'
++		pathToDynastat = [pathToDynastat '/'];
+ 	end
+-	for num = 1:length(dirToWav)
+-		if dirToWav{num}(end)~='/'
+-			dirToWav{num} = [dirToWav{num} '/'];
+-		end
++	if pathToNoizeus(end)~='/'
++		pathToNoizeus = [pathToNoizeus '/'];
+ 	end
+ % }}}
+ 
+ %% Get the filename of each wav file and identify the respective conditions {{{
+-namesOfAllCases = [namesOfAllCases_load(dirToWav,{'*.wav'},debugMode); ...
+-	namesOfControlCases_load]; % TODO get the right list (no sp**.wav)
++namesOfAllCases = namesOfAllCases_load(pathToDynastat,{'*.wav'},debugMode);
++numberOfCasesBeforeNoizeus = length(namesOfAllCases); 
++	% the first half will be in pathToDynastat; 2nd half in pathToNoizeus
++namesOfAllCases = [namesOfAllCases; namesOfControlCases_load];
++if debugMode % {{{
++	namesOfAllCases = namesOfAllCases(1:3) %#ok disp the test cases to the command window
++end % }}}
+ [aa,bb,cc,dd,maxSizeInfo] = sortLoizouCaseIntoParams(namesOfAllCases,'wav');
+ % }}}
+ 
+@@ -56,15 +59,23 @@ unsortedHASQI = nan(length(namesOfAllCases),1);
+ fs = 16e3;
+ hearingThresholds = zeros(1,6); % normal hearing
+ delayEqualization = 1; % 1 = delay input to match output timing in each freq band
+-for ss = 1:length(namesOfAllCases)
++parfor ss = 1:length(namesOfAllCases)
+ 
+-	x = wavread([dirToWav 'clean/sp' sprintf('%02.0f',dd(ss))]);
+-	[y,fs_orig] = wavread([dirToWav namesOfAllCases{ss}]);
++	x = wavread([pathToDynastat 'clean/sp' sprintf('%02.0f',dd(ss))]);
++	% Define the appropriate path {{{
++	if ss <= numberOfCasesBeforeNoizeus
++		path = pathToDynastat;
++	else
++		path = pathToNoizeus;
++	end % }}}
++	[y,fs_orig] = wavread([path namesOfAllCases{ss}]);
+ 
+-	if resamp
++	if resamp % {{{
+ 		x = resample(x,fs,fs_orig);
+ 		y = resample(y,fs,fs_orig);
+-	end
++	else
++		error('This code currently does not support not resampling.');
++	end % }}}
+ 	
+ 	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss)] = ...
+ 		Qual_metric(x,y,hearingThresholds,delayEqualization,fs);
+@@ -85,11 +96,13 @@ HASQI(ind) = unsortedHASQI;
+ % }}}
+ 
+ %% Send an email upon completion {{{
+-send_mail('abbiekressner+matlab@gmail.com','Job finished.');
++if not(debugMode)
++	send_mail('abbiekressner+matlab@gmail.com','Job finished.');
++end
+ % }}}
+ catch exception % {{{
+ 	if debugMode == false
+-		pathToSave = false; % don't save
++		pathToSave = false; %#ok (pathToSave is used by abbieCatchScript) note that false means don't save
+ 		abbieCatchScript;
+ 	else
+ 		rethrow(exception);
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+index f3d1068..20dcf6d 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+@@ -1,23 +1,25 @@
+ % Wrapper function to send computeQualmetricForLoizouData.m
+ 
+-debugMode = false;
++debugMode = false; % change the number of workers to a number less than your test size
+ resamp = true;
+ whichConfig = 'NeuroCluster';
+ minNumWorkers = 15;
+-maxNumWorkers = 45;
++maxNumWorkers = 30;
+ 
+ if strcmp(whichConfig,'local')
+-    pathToWav = '~/sym/Dynastat/';
++    pathToDynastat = '~/sym/Dynastat/';
++	pathToNoizeus = '/Users/abbiekre/Documents/MATLAB/Loizou/TextbookDatabase/database/noizeus/';
+ elseif strcmp(whichConfig,'NeuroCluster')
+-    pathToWav = '/mnt/data/akressner/LoizouWavFiles/';
++    pathToDynastat = '/mnt/data/akressner/LoizouWavFiles/';
++	pathToNoizeus = '/mnt/data/akressner/Noizeus/';
+ else 
+     error('You have not specified a valid configuration.');
+ end
+-funcInputs = {pathToWav,resamp,debugMode}; % dirToWav,resamp, debugMode
++funcInputs = {pathToDynastat,pathToNoizeus,resamp,debugMode};
+ numberOfOutputs = 3;
+ theFileDeps = getFileDependencies('computeQualmetricForLoizouData');
+-theFileDeps = [theFileDeps;'~/sym/sortedAggregatedSubjectiveScores.mat'];
+-thePathDeps = {pathToWav};
++theFileDeps = [theFileDeps;'~/sym/sortingInfo.mat'];
++thePathDeps = {pathToDynastat;pathToNoizeus};
+ 
+ sch = findResource('scheduler','Configuration',whichConfig);
+ job = createMatlabPoolJob(sch);
+
+commit 3673d4a8bc71dfbb49b02b1871089f7c165a097c
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Tue Mar 29 21:03:55 2011 +0000
+
+    Added a few files all to get this stupid correlation figured out between the Kates's HASQI objective scores and the Loizou subjective scores.
+
+diff --git a/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m b/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m
+new file mode 100644
+index 0000000..53a9918
+--- /dev/null
++++ b/HASQI/Kates/calcCorrelationQualmetricIndividLoizouData.m
+@@ -0,0 +1,10 @@
++function [r,stderror] = calcCorrelationQualmetricIndividLoizouData( ...
++	pathToObj, pathToSubj)
++
++	%% Load data {{{
++	obj = load(pathToObj); % size of each matrix will be 16x6x5x3
++	subj = load(pathToSubj); % NOTE: use sortIndividLoizouData to sort 
++							 % and normalize the individual scores from 
++							 % the xls sheet
++	% }}}
++	
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index 1211bfa1..6c00ecb 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -21,21 +21,29 @@ function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(...
+ 	%							each of the wav files
+ 	% }}}
+ 
+-%try
++try
+ 
+ %% Check inputs {{{
+-	if nargin < 2
++	if nargin < 3
+ 		debugMode = false;
+ 	end
+-	if nargin < 1
++	if nargin < 2
+ 		resamp = true;
+ 	end
++	if not(iscell(dirToWav))
++		dirToWav = {dirToWav};
++	end
++	for num = 1:length(dirToWav)
++		if dirToWav{num}(end)~='/'
++			dirToWav{num} = [dirToWav{num} '/'];
++		end
++	end
+ % }}}
+ 
+ %% Get the filename of each wav file and identify the respective conditions {{{
+-namesOfAllCases = namesOfAllCases_load(dirToWav,{'*.wav'},debugMode);
+-% NOTE: I haven't included the reference (clean or noisy) signals here. Do I need them?
+-[aa,bb,cc,dd] = sortLoizouCaseIntoParams(namesOfAllCases,'wav');
++namesOfAllCases = [namesOfAllCases_load(dirToWav,{'*.wav'},debugMode); ...
++	namesOfControlCases_load]; % TODO get the right list (no sp**.wav)
++[aa,bb,cc,dd,maxSizeInfo] = sortLoizouCaseIntoParams(namesOfAllCases,'wav');
+ % }}}
+ 
+ %% Initialize all the unsorted versions of the outputs % {{{
+@@ -50,7 +58,7 @@ hearingThresholds = zeros(1,6); % normal hearing
+ delayEqualization = 1; % 1 = delay input to match output timing in each freq band
+ for ss = 1:length(namesOfAllCases)
+ 
+-	x = wavread([dirToWav '/clean/sp' sprintf('%02.0f',dd(ss))]);
++	x = wavread([dirToWav 'clean/sp' sprintf('%02.0f',dd(ss))]);
+ 	[y,fs_orig] = wavread([dirToWav namesOfAllCases{ss}]);
+ 
+ 	if resamp
+@@ -58,24 +66,19 @@ for ss = 1:length(namesOfAllCases)
+ 		y = resample(y,fs,fs_orig);
+ 	end
+ 	
+-	if not((aa(ss)==3) || (aa(ss)==15) || ...
+-			(dd(ss)==5) || (dd(ss)==10) || (dd(ss)==15) || (dd(ss)==20)) % skip the ones I don't end up using them later
+-		
+-		[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss)] = ...
+-			Qual_metric(x,y,hearingThresholds,delayEqualization,fs);
+-	end
+-
++	[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss)] = ...
++		Qual_metric(x,y,hearingThresholds,delayEqualization,fs);
+ end
+ % }}} 
+ 
+ %% Initialize the sorted outputs {{{
+-Qnonlin = nan(15,2,4,20);
+-Qlin = nan(15,2,4,20);
+-HASQI = nan(15,2,4,20);
++Qnonlin = nan(maxSizeInfo);
++Qlin = nan(maxSizeInfo);
++HASQI = nan(maxSizeInfo);
+ % }}} 
+ 
+ %% Sort all the outputs {{{
+-ind = sub2ind(size(Qnonlin),aa,bb,cc,dd);
++ind = sub2ind(maxSizeInfo,aa,bb,cc,dd);
+ Qnonlin(ind) = unsortedQnonlin;
+ Qlin(ind) = unsortedQlin;
+ HASQI(ind) = unsortedHASQI;
+@@ -84,7 +87,6 @@ HASQI(ind) = unsortedHASQI;
+ %% Send an email upon completion {{{
+ send_mail('abbiekressner+matlab@gmail.com','Job finished.');
+ % }}}
+-%{
+ catch exception % {{{
+ 	if debugMode == false
+ 		pathToSave = false; % don't save
+@@ -94,6 +96,5 @@ catch exception % {{{
+ 	end
+ end
+ % }}}
+-%}
+ 
+ end % function end
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+index 8dd8888..f3d1068 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+@@ -4,7 +4,7 @@ debugMode = false;
+ resamp = true;
+ whichConfig = 'NeuroCluster';
+ minNumWorkers = 15;
+-maxNumWorkers = 30;
++maxNumWorkers = 45;
+ 
+ if strcmp(whichConfig,'local')
+     pathToWav = '~/sym/Dynastat/';
+diff --git a/HASQI/Kates/sortIndividLoizouData.m b/HASQI/Kates/sortIndividLoizouData.m
+new file mode 100644
+index 0000000..47b60dc
+--- /dev/null
++++ b/HASQI/Kates/sortIndividLoizouData.m
+@@ -0,0 +1,10 @@
++function individScores = sortIndividLoizouData(pathToXls,normalizationMethod)
++
++
++		[~,~,xls] = xlsread(pathToXls,'Transformed-ratings');
++		% TODO: Disregard the "R" cases
++		[aa,bb,cc,~,maxSizeInfo] = sortLoizouCaseIntoParams(xls(2:end,:),'individScores');
++		% TODO: I need to figure out how to identify dd
++		% ee should be the subj number, which is xls(:,3)
++		ind = sub2ind([maxSizeInfo max(ee)],aa,bb,cc,dd,ee);
++		% normalize scores for each subject, depending on the normalization method
+
+commit c036b7f5ac1475f84f40f89fdf127c4765202ed1
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Mon Mar 28 19:09:09 2011 +0000
+
+    Adjusted the command prompt so that it is at most 12 chars. Also made some adjustments to my vim colorscheme.
+    
+    
+    Mon Mar 28 15:17:12 EDT 2011- I wasn't supposed to be committing to this repository.  Ignore this commit and the above message.
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index bbaa910..1211bfa1 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -1,4 +1,5 @@
+-function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(dirToWav,resamp,debugMode)
++function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(...
++		dirToWav,resamp,debugMode)
+ 	% computeQualMetricForLoizouData computes the Qnonlin, Qlin, and HASQI values {{{
+ 	% for each of the wav files from the Dynastat/Hu/Loizou dataset
+ 	%
+
+commit fe7ace81b56e3a525ac0daffa84cac6e41a0fe95
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Fri Mar 25 19:45:50 2011 +0000
+
+    I have sortLoizouCaseIntoParams working on the individual subjective scores.
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+index aef73f6..8dd8888 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+@@ -41,7 +41,7 @@ end
+ whereToSave = '';
+ 
+ out = getAllOutputArguments(job);
+-save([whereToSave 'sortedCC.mat']);
++save([whereToSave 'out.mat']);
+ 
+ destroy(j);
+ %}
+
+commit 5a471b688bb491eb7ecb9d9664d9232a7a05ff9d
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Thu Mar 17 22:14:38 2011 +0000
+
+    Added a startjob script for computQualmetricForLoizouData.  Debugged Kate's script a bit. It is currently running on the cluster.
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index 249c50e..f8dee4d 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -26,6 +26,10 @@ function [Nonlin,Linear,Combined]=Qual_metric(x,y,HL,eq,fsamp)
+ % Bulk delay compensation added 31 December 2008.
+ % Gammatone filter converted to m-file, 26 Jan 2009.
+ 
++% added by abbie kressner Thu Mar 17 17:47:00 EDT 2011
++x = x(:); % make sure it's a column vector
++y = y(:); % make sure it's a column vector
++
+ % Processing parameters
+ nchan=22; %Use 32 frequency bands from 150 to 8000 Hz, 22 freq bands from 150 to 4kHz.
+ Level1=65; %Reference level in dB SPL for RMS=1
+@@ -103,10 +107,10 @@ for n=1:nchan
+     	[s,i]=max(xy); %Maximum of the cross-correlation
+     	delay=npts-i; %Bulk delay
+     	delay=max(delay,0); %Preclude negative delays (time advance)
+-    	z=zeros(1,delay); %Back up from the ccorr peak location
+-    	xe=[z, xe]; %Delay the clean reference
++    	z=zeros(delay,1); %Back up from the ccorr peak location
++    	xe=[z; xe]; %Delay the clean reference
+     	xe=xe(1:npts); %Truncate the delayed sequence to the original length
+-    	xce=[z, xce]; %Delay the clean reference
++    	xce=[z; xce]; %Delay the clean reference
+     	xce=xce(1:npts); %Truncate the delayed sequence to the original length
+ 	end
+   
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index bfb4ba6..bbaa910 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -1,5 +1,5 @@
+-function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(resamp,debugMode)
+-	% computeQualMetricForLoizouData computes the Qnonlin, Qlin, and HASQI values
++function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(dirToWav,resamp,debugMode)
++	% computeQualMetricForLoizouData computes the Qnonlin, Qlin, and HASQI values {{{
+ 	% for each of the wav files from the Dynastat/Hu/Loizou dataset
+ 	%
+ 	% Inputs:
+@@ -18,8 +18,9 @@ function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(resamp,debugMode)
+ 	%	HASQI	Matrix (algorithms by snr by noisetype by sentence)
+ 	%							Contains the sorted HASQI values for 
+ 	%							each of the wav files
++	% }}}
+ 
+-try
++%try
+ 
+ %% Check inputs {{{
+ 	if nargin < 2
+@@ -30,10 +31,10 @@ try
+ 	end
+ % }}}
+ 
+-%% Get the filename of each wav file % {{{
+-namesOfAllCases = namesOfAllCases_load(['/Users/abbiekre/Documents/MATLAB/' ...
+-	'Loizou/Hu_SubjListenerResults/Dynastat/'],{'*.wav'},debugMode);
+-% TODO: I haven't included the reference (clean or noisy) signals here. Do I need them?
++%% Get the filename of each wav file and identify the respective conditions {{{
++namesOfAllCases = namesOfAllCases_load(dirToWav,{'*.wav'},debugMode);
++% NOTE: I haven't included the reference (clean or noisy) signals here. Do I need them?
++[aa,bb,cc,dd] = sortLoizouCaseIntoParams(namesOfAllCases,'wav');
+ % }}}
+ 
+ %% Initialize all the unsorted versions of the outputs % {{{
+@@ -43,18 +44,25 @@ unsortedHASQI = nan(length(namesOfAllCases),1);
+ % }}}
+ 
+ %% Run through each case and compute the outputs % {{{
+-parfor ss = 1:length(namesOfAllCases)
++fs = 16e3;
++hearingThresholds = zeros(1,6); % normal hearing
++delayEqualization = 1; % 1 = delay input to match output timing in each freq band
++for ss = 1:length(namesOfAllCases)
++
++	x = wavread([dirToWav '/clean/sp' sprintf('%02.0f',dd(ss))]);
++	[y,fs_orig] = wavread([dirToWav namesOfAllCases{ss}]);
++
++	if resamp
++		x = resample(x,fs,fs_orig);
++		y = resample(y,fs,fs_orig);
++	end
+ 	
+-	% TODO: CALL KATES'S FUNCTIONS HERE
+-	% load wav files
+-	% resamp
+-	% call functions
+-	% skip over lap and sp= {5 10 15 20}??
+-	%{
+-		if not((aa==3) || (aa==15) || ...
+-				(dd==5) || (dd==10) || (dd==15) || (dd==20)) % skip the ones I don't end up using them later
+-		end
+-	%}
++	if not((aa(ss)==3) || (aa(ss)==15) || ...
++			(dd(ss)==5) || (dd(ss)==10) || (dd(ss)==15) || (dd(ss)==20)) % skip the ones I don't end up using them later
++		
++		[unsortedQnonlin(ss),unsortedQlin(ss),unsortedHASQI(ss)] = ...
++			Qual_metric(x,y,hearingThresholds,delayEqualization,fs);
++	end
+ 
+ end
+ % }}} 
+@@ -66,22 +74,25 @@ HASQI = nan(15,2,4,20);
+ % }}} 
+ 
+ %% Sort all the outputs {{{
+-[aa,bb,cc,dd] = sortLoizouCaseIntoParams(namesOfAllCases,'wav');
+ ind = sub2ind(size(Qnonlin),aa,bb,cc,dd);
+ Qnonlin(ind) = unsortedQnonlin;
+ Qlin(ind) = unsortedQlin;
+ HASQI(ind) = unsortedHASQI;
+-% TODO: clean up?
+ % }}}
+ 
+-%% TODO: Send an email??
+-
++%% Send an email upon completion {{{
++send_mail('abbiekressner+matlab@gmail.com','Job finished.');
++% }}}
++%{
+ catch exception % {{{
+ 	if debugMode == false
+-		pathToSave = '/mnt/data/akressner/'; %#ok
++		pathToSave = false; % don't save
+ 		abbieCatchScript;
+ 	else
+ 		rethrow(exception);
+ 	end
+-	% }}}
++end
++% }}}
++%}
++
+ end % function end
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData_startJob.m b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+new file mode 100644
+index 0000000..aef73f6
+--- /dev/null
++++ b/HASQI/Kates/computeQualmetricForLoizouData_startJob.m
+@@ -0,0 +1,47 @@
++% Wrapper function to send computeQualmetricForLoizouData.m
++
++debugMode = false;
++resamp = true;
++whichConfig = 'NeuroCluster';
++minNumWorkers = 15;
++maxNumWorkers = 30;
++
++if strcmp(whichConfig,'local')
++    pathToWav = '~/sym/Dynastat/';
++elseif strcmp(whichConfig,'NeuroCluster')
++    pathToWav = '/mnt/data/akressner/LoizouWavFiles/';
++else 
++    error('You have not specified a valid configuration.');
++end
++funcInputs = {pathToWav,resamp,debugMode}; % dirToWav,resamp, debugMode
++numberOfOutputs = 3;
++theFileDeps = getFileDependencies('computeQualmetricForLoizouData');
++theFileDeps = [theFileDeps;'~/sym/sortedAggregatedSubjectiveScores.mat'];
++thePathDeps = {pathToWav};
++
++sch = findResource('scheduler','Configuration',whichConfig);
++job = createMatlabPoolJob(sch);
++set(job,'MinimumNumberOfWorkers',minNumWorkers);
++set(job,'MaximumNumberOfWorkers',maxNumWorkers);
++set(job,'FileDependencies',theFileDeps);
++set(job,'PathDependencies',thePathDeps);
++task = createTask(job, @computeQualmetricForLoizouData, ...
++    numberOfOutputs, funcInputs, ...
++    'CaptureCommandWindowOutput', true);
++submit(job);
++
++if debugMode
++	wait(job);
++	system('say job finished');
++end
++
++
++% RUN THE FOLLOWING CODE AFTER COMPLETION ... 
++%{
++whereToSave = '';
++
++out = getAllOutputArguments(job);
++save([whereToSave 'sortedCC.mat']);
++
++destroy(j);
++%}
+
+commit 2c425508fd3391bae6366c21a4d817fef90b90b9
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Wed Mar 16 20:33:24 2011 +0000
+
+    Working on writing computeQualmetricForLoizouData.
+
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+index 3f9eefe..bfb4ba6 100644
+--- a/HASQI/Kates/computeQualmetricForLoizouData.m
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -1,4 +1,4 @@
+-function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(resamp)
++function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(resamp,debugMode)
+ 	% computeQualMetricForLoizouData computes the Qnonlin, Qlin, and HASQI values
+ 	% for each of the wav files from the Dynastat/Hu/Loizou dataset
+ 	%
+@@ -19,8 +19,69 @@ function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(resamp)
+ 	%							Contains the sorted HASQI values for 
+ 	%							each of the wav files
+ 
++try
+ 
++%% Check inputs {{{
++	if nargin < 2
++		debugMode = false;
++	end
++	if nargin < 1
++		resamp = true;
++	end
++% }}}
++
++%% Get the filename of each wav file % {{{
++namesOfAllCases = namesOfAllCases_load(['/Users/abbiekre/Documents/MATLAB/' ...
++	'Loizou/Hu_SubjListenerResults/Dynastat/'],{'*.wav'},debugMode);
++% TODO: I haven't included the reference (clean or noisy) signals here. Do I need them?
++% }}}
++
++%% Initialize all the unsorted versions of the outputs % {{{
++unsortedQnonlin = nan(length(namesOfAllCases),1);
++unsortedQlin = nan(length(namesOfAllCases),1);
++unsortedHASQI = nan(length(namesOfAllCases),1);
++% }}}
++
++%% Run through each case and compute the outputs % {{{
++parfor ss = 1:length(namesOfAllCases)
+ 	
++	% TODO: CALL KATES'S FUNCTIONS HERE
++	% load wav files
++	% resamp
++	% call functions
++	% skip over lap and sp= {5 10 15 20}??
++	%{
++		if not((aa==3) || (aa==15) || ...
++				(dd==5) || (dd==10) || (dd==15) || (dd==20)) % skip the ones I don't end up using them later
++		end
++	%}
++
++end
++% }}} 
++
++%% Initialize the sorted outputs {{{
++Qnonlin = nan(15,2,4,20);
++Qlin = nan(15,2,4,20);
++HASQI = nan(15,2,4,20);
++% }}} 
++
++%% Sort all the outputs {{{
++[aa,bb,cc,dd] = sortLoizouCaseIntoParams(namesOfAllCases,'wav');
++ind = sub2ind(size(Qnonlin),aa,bb,cc,dd);
++Qnonlin(ind) = unsortedQnonlin;
++Qlin(ind) = unsortedQlin;
++HASQI(ind) = unsortedHASQI;
++% TODO: clean up?
++% }}}
+ 
++%% TODO: Send an email??
+ 
++catch exception % {{{
++	if debugMode == false
++		pathToSave = '/mnt/data/akressner/'; %#ok
++		abbieCatchScript;
++	else
++		rethrow(exception);
++	end
++	% }}}
+ end % function end
+
+commit 19d0a2d99483fd8636283628d881e6abc62c1651
+Author: Abbie Kressner <abbiekressner@gmail.com>
+Date:   Thu Mar 10 22:52:36 2011 +0000
+
+    Trying to make the sorting process more centralized. Also started putting together code to run Kates functions on the Loizou dataset.
+
+diff --git a/HASQI/Kates/Qual_metric.m b/HASQI/Kates/Qual_metric.m
+index f467f02..249c50e 100755
+--- a/HASQI/Kates/Qual_metric.m
++++ b/HASQI/Kates/Qual_metric.m
+@@ -27,7 +27,7 @@ function [Nonlin,Linear,Combined]=Qual_metric(x,y,HL,eq,fsamp)
+ % Gammatone filter converted to m-file, 26 Jan 2009.
+ 
+ % Processing parameters
+-nchan=32; %Use 32 frequency bands from 150 to 8000 Hz.
++nchan=22; %Use 32 frequency bands from 150 to 8000 Hz, 22 freq bands from 150 to 4kHz.
+ Level1=65; %Reference level in dB SPL for RMS=1
+ 
+ % Check the file sizes
+diff --git a/HASQI/Kates/computeQualmetricForLoizouData.m b/HASQI/Kates/computeQualmetricForLoizouData.m
+new file mode 100644
+index 0000000..3f9eefe
+--- /dev/null
++++ b/HASQI/Kates/computeQualmetricForLoizouData.m
+@@ -0,0 +1,26 @@
++function [Qnonlin,Qlin,HASQI] = computeQualmetricForLoizouData(resamp)
++	% computeQualMetricForLoizouData computes the Qnonlin, Qlin, and HASQI values
++	% for each of the wav files from the Dynastat/Hu/Loizou dataset
++	%
++	% Inputs:
++	%	resamp	{true,false}	Specific whether the wav files should be
++	%							resampled to 16kHz from their native 8kHz
++	%
++	% Outputs:
++	%	Qnonlin	Matrix (algorithms by snr by noisetype by sentence)
++	%							Contains the sorted Qnonlin values for
++	%							each of the wav files
++	%
++	%	Qlin	Matrix (algorithms by snr by noisetype by sentence)
++	%							Contains the sorted Qlin values for
++	%							each of the wav files
++	%
++	%	HASQI	Matrix (algorithms by snr by noisetype by sentence)
++	%							Contains the sorted HASQI values for 
++	%							each of the wav files
++
++
++	
++
++
++end % function end

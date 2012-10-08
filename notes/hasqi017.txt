@@ -1,0 +1,131 @@
+FIXED BUG BETWEEN HASQI016 AND HASQI017
+Bumped the Pearson correlation of hasqi from r_p=0.73 to 0.81 by transposing the neurograms so that the frequency dimension is along the first dimension when going into cochlea_melcor since this is what the function expects.  cxy improved from r_p=0.76 to 0.84.  Spearman of hasqi from r_s=0.70 to 0.80.
+
+Note that qnonlin is doing well (r_p=0.84), but qlin is not (r_p=0.40).
+
+Comparisons to using the Kates models for the periphery (see hasqi009.txt):
+			Carney		Kates
+1) hasqi	r_p=0.8087	r_p=0.8475
+2) qnonlin	r_p=0.8405	r_p=0.8483
+3) qlin		r_p=0.4039	r_p=0.6523
+4) cxy		r_p=0.8415	r_p=0.8533
+5) cxy*qlin	r_p=0.8086	r_p=0.8533 % NOTE I'm not sure that this second number is correct
+
+6) The mapping from cxy to qnonlin is not hurting the correlation for Carney (but not really helping either)
+7) qlin is really bringing the correlation down
+8) Even if we bring the corr up for qlin though, we will most likely not be doing any better than the Kates model; however, this is not guarenteed, because the r_p's are not linearly related (i.e. hasqi r_p is not the multipication of qnonlin r_p and qlin r_p)
+
+---> MATLAB < ---
+
+>> [qnonlin,qlin,hasqi,cxy,d1,d2]=computeQualmetricForLoizouData('~/Data/20110711_DynastatNeurograms/');
+
+--> Starting sp01 (19-Jul-2011 17:51:58)
+        Runtime: 8.6 secs
+
+--> Starting sp02 (19-Jul-2011 17:52:07)
+        Runtime: 8.4 secs
+
+--> Starting sp03 (19-Jul-2011 17:52:15)
+        Runtime: 8.0 secs
+
+--> Starting sp04 (19-Jul-2011 17:52:23)
+        Runtime: 8.0 secs
+
+--> Starting sp06 (19-Jul-2011 17:52:31)
+        Runtime: 8.6 secs
+
+--> Starting sp07 (19-Jul-2011 17:52:40)
+        Runtime: 8.4 secs
+
+--> Starting sp08 (19-Jul-2011 17:52:48)
+        Runtime: 8.6 secs
+
+--> Starting sp09 (19-Jul-2011 17:52:57)
+        Runtime: 8.8 secs
+
+--> Starting sp11 (19-Jul-2011 17:53:06)
+        Runtime: 8.8 secs
+
+--> Starting sp12 (19-Jul-2011 17:53:14)
+        Runtime: 8.5 secs
+
+--> Starting sp13 (19-Jul-2011 17:53:23)
+        Runtime: 8.5 secs
+
+--> Starting sp14 (19-Jul-2011 17:53:31)
+        Runtime: 8.9 secs
+
+--> Starting sp16 (19-Jul-2011 17:53:40)
+        Runtime: 8.3 secs
+
+--> Starting sp17 (19-Jul-2011 17:53:49)
+        Runtime: 8.4 secs
+
+--> Starting sp18 (19-Jul-2011 17:53:57)
+        Runtime: 8.0 secs
+
+--> Starting sp19 (19-Jul-2011 17:54:05)
+        Runtime: 8.5 secs
+
+ Total runtime: 2 mins, 16.0 secs
+>> hasqi_subset=hasqi([1:2 4:15],:,:);
+>> load ~/Data/subj_noNormalizeRaw_correctSubset.mat   
+>> [r_p,stde]=pearson(hasqi_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+    0.8087
+
+
+stde =
+
+    0.2745
+
+>> cxy_subset=cxy([1:2 4:15],:,:);                                   
+>> [r_p,stde]=pearson(cxy_subset(:),subjRawNoNormalization_subset(:))  
+
+r_p =
+
+    0.8415
+
+
+stde =
+
+    0.2521
+
+>> r_s=corr(hasqi_subset(:),subjRawNoNormalization_subset(:),'Type','Spearman')
+
+r_s =
+
+    0.8016
+
+>> qnonlin_subset=qnonlin([1:2 4:15],:,:);                                     
+>> [r_p,stde]=pearson(qnonlin_subset(:),subjRawNoNormalization_subset(:))        
+
+r_p =
+
+    0.8405
+
+
+stde =
+
+    0.2528
+
+>> qlin_subset=qlin([1:2 4:15],:,:);                                
+>> [r_p,stde]=pearson(qlin_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+    0.4039
+
+
+stde =
+
+    0.4269
+
+>> r_p=pearson(cxy_subset(:).*qlin_subset(:),subjRawNoNormalization_subset(:)) 
+
+r_p =
+
+    0.8086
+	

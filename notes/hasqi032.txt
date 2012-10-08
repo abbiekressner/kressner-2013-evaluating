@@ -1,0 +1,39 @@
+See figures for details.
+
+% === Proof of equivalence of training ===
+
+>> lsqlin(vandern(cxy_training_mean(:),2),zeroToOneScores_subset(:)) 
+
+ans =
+
+          1.49383266549864
+       -0.0435899118891747
+        0.0256704763651869
+
+>> polyfit(cxy_training_mean(:),zeroToOneScores_subset(:),2)
+
+ans =
+
+          1.49383266549858       -0.0435899118891146        0.0256704763651714
+
+>> vandern(cxy_training_mean(:),2)\zeroToOneScores_subset(:)
+
+ans =
+
+          1.49383266549864
+       -0.0435899118891747
+        0.0256704763651869
+
+
+% === Adding in a constraint ===
+>> lsqlin(vandern(cxy_training_mean(:),2),zeroToOneScores_subset(:),[],[],vandern(1,2),1)
+Warning: Large-scale algorithm can handle bound constraints only;
+    using medium-scale algorithm instead. 
+> In <a href="matlab: opentoline('/Applications/MATLAB_R2009b.app/toolbox/optim/optim/lsqlin.m',286,1)">lsqlin at 286</a>
+Optimization terminated.
+
+ans =
+
+        -0.536025079410453
+            2.024647316367
+        -0.488622236956546

@@ -1,0 +1,67 @@
+>> load ~/Documents/MATLAB/Data/20111014_HasqiWithKatesAddLogToLinForQlin/results.mat
+>> load ~/sym/HuLoizouSubj.mat
+>> addpath('~/Documents/MATLAB/ObjectiveMeasures/HASQI/analysisAndPlottingTools/');
+>> plotObjSubj(hasqi_subset(:),subjRawNoNormalization_subset(:),'HASQI','bottomright');
+>> plotObjSubj(qlin_subset(:),subjRawNoNormalization_subset(:),'Q_{lin}','topleft');    
+>> plotObjSubj(qnonlin_subset(:),subjRawNoNormalization_subset(:),'Q_{nonlin}','bottomright');
+
+>> cd ~/Documents/MATLAB/ObjectiveMeasures/
+>> addpaths_hasqi
+>> addpath('~/Documents/MATLAB/Loizou/TextbookDatabase/MATLAB_code/noise_estimation/');
+>> addpath('~/Documents/MATLAB/Loizou/TextbookDatabase/MATLAB_code/obj_evaluation/');  
+>> addpath('~/Documents/MATLAB/Loizou/TextbookDatabase/MATLAB_code/spectral_subtractive/');
+>> addpath('~/Documents/MATLAB/Loizou/TextbookDatabase/MATLAB_code/statistical_based/');   
+>> addpath('~/Documents/MATLAB/Loizou/TextbookDatabase/MATLAB_code/subspace/');         
+>> 
+>> 
+>> % FROM HASQI012 NOTES and HASQI028 NOTES...
+>>
+>> labels={'PESQ','LLR','fwsegSNR (k=13)','fwsegSNR (k=25)','HASQI','CEP','WSS','IS','segSNR'};
+>> r=[0.888794632291628,-0.862985021476328,0.851602661704588,0.844341137762135,0.842199920061095,-0.83179095415969,-0.64059804205794,-0.596615908220811,0.360987649944466];
+>> stde=[0.213871905075339,0.235769269477359,0.244616330308766,0.250038016610263,0.251605703581102,0.259036594254387,0.358335476165426,0.374505415667652,0.435191306116467];
+>> mkdir ~/Documents/MATLAB/Data/20111026_SaveCorrAndStdeForAllObjMeasures
+>> save('~/Documents/MATLAB/Data/20111026_SaveCorrAndStdeForAllObjMeasures/results.mat','labels','r','stde','subjRawNoNormalization_subset');
+
+>> confwidths=intervalEstimationOfCorrCoeff(abs(r),112)
+
+confwidths =
+
+         0.842121523702674         0.922252263721148
+         0.806588793329858         0.903812377327714
+         0.791046859763235         0.895631693325145
+         0.781172356500112         0.890397110316725
+         0.778266666455612         0.888851250968092
+          0.76418031837433         0.881321302412283
+         0.516425857986828         0.738386080780274
+         0.462229029084535         0.704213309131545
+         0.188023191884871         0.512234931904077
+
+>> confInt=[abs(r(:))-confwidths(:,1) confwidths(:,2)-abs(r(:))]
+
+confInt =
+
+        0.0466731085889545        0.0334576314295196
+        0.0563962281464701        0.0408273558513856
+        0.0605558019413532        0.0440290316205574
+        0.0631687812620234        0.0460559725545902
+         0.063933253605483        0.0466513309069967
+        0.0676106357853703        0.0495303482525873
+         0.124172184071112        0.0977880387223342
+         0.134386879136276         0.107597400910734
+         0.172964458059595         0.151247281959611
+
+
+
+
+
+>> % in the end, these are the commands I used to make the plots
+
+>> prettyBarPlot(fliplr(abs(r)),fliplr(labels),'|r|',flipud(confInt));
+>> set(gca,'Position',[0.20462962962963         0.222222222222222         0.723148148148148         0.702777777777778]);
+>> prettyBarPlot(fliplr(stde),fliplr(labels),'\hat{\sigma}_e',false)
+>> set(gca,'Position',[0.20462962962963         0.222222222222222         0.723148148148148         0.702777777777778]);
+
+>> plotObjSubj(qnonlin_subset(:),subjRawNoNormalization_subset(:),'$Q_{\textrm{nonlin}}$','latex','bottomright');
+>> plotObjSubj(hasqi_subset(:),subjRawNoNormalization_subset(:),'HASQI','none','bottomright');                   
+>> plotObjSubj(hasqi_subset(:),subjRawNoNormalization_subset(:),'HASQI','none','bottomright');
+

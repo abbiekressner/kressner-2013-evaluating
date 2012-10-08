@@ -1,0 +1,64 @@
+Runtime: 0 days 1h 27m 21s
+
+Notes:
+1) hasqi	r_p=0.8475, stde=0.248
+2) qnonlin	r_p=0.8483
+3) qlin		r_p=0.6523
+4) cxy		r_p=0.8533
+5) cxy*qlin	r_p=0.8533
+
+6) qlin is bringing down the correlation
+7) the fit from cxy to qnonlin is actually making the correlation worse
+
+
+---> MATLAB <---
+
+>> save('/Volumes/abbieWD2_Data/hasqiLoizouData/usingKatesCode/KatesModel_resampTo16kHz_AmpAdjustedCorrectly_nchan32.mat','qnonlin','qlin','hasqi','cxy');
+>> size(hasqi)
+
+ans =
+
+    15     2     4
+
+>> hasqi_subset=hasqi([1 2 4:15],:,:);
+>> [r,stde]=pearson(hasqi_subset(:),subjRawNoNormalization_subset(:))
+
+r =
+
+         0.847538141486137
+
+stde =
+
+         0.247671368607532
+
+
+
+
+
+>> qnonlin_subset=qnonlin([1:2 4:15],:,:);
+>> r_p=pearson(qnonlin_subset(:),subjRawNoNormalization_subset(:)) 
+
+r_p =
+
+         0.848263249152893
+
+>> qlin_subset=qlin([1:2 4:15],:,:);
+>> r_p=pearson(qlin_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+          0.65228233193857
+
+>> cxy_subset=cxy([1:2 4:15],:,:);
+>> r_p=pearson(cxy_subset(:),subjRawNoNormalization_subset(:))    
+
+r_p =
+
+         0.853330165707204
+
+>> r_p=pearson(qlin_subset(:).*cxy_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.853349236110715
+

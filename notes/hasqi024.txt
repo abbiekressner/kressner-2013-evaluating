@@ -1,0 +1,445 @@
+>> cd ~/Documents/MATLAB/ObjectiveMeasures/
+>> addpaths_hasqi
+>> [qnonlin,qlin,hasqi,cxy,d1,d2]=computeHasqiFromCarneyNeurograms('/Users/abbiekre/Documents/MATLAB/Data/20110721_DynastatNeurograms79dB/');
+
+--> Starting sp01 (19-Sep-2011 18:20:00)
+        Runtime: 7.4 secs
+
+--> Starting sp02 (19-Sep-2011 18:20:07)
+        Runtime: 7.0 secs
+
+--> Starting sp03 (19-Sep-2011 18:20:14)
+        Runtime: 6.7 secs
+
+--> Starting sp04 (19-Sep-2011 18:20:21)
+        Runtime: 7.3 secs
+
+--> Starting sp06 (19-Sep-2011 18:20:28)
+        Runtime: 7.1 secs
+
+--> Starting sp07 (19-Sep-2011 18:20:35)
+        Runtime: 6.9 secs
+
+--> Starting sp08 (19-Sep-2011 18:20:42)
+        Runtime: 7.3 secs
+
+--> Starting sp09 (19-Sep-2011 18:20:49)
+        Runtime: 7.1 secs
+
+--> Starting sp11 (19-Sep-2011 18:20:56)
+        Runtime: 7.1 secs
+
+--> Starting sp12 (19-Sep-2011 18:21:04)
+        Runtime: 7.0 secs
+
+--> Starting sp13 (19-Sep-2011 18:21:11)
+        Runtime: 6.9 secs
+
+--> Starting sp14 (19-Sep-2011 18:21:17)
+        Runtime: 7.1 secs
+
+--> Starting sp16 (19-Sep-2011 18:21:25)
+        Runtime: 6.7 secs
+
+--> Starting sp17 (19-Sep-2011 18:21:31)
+        Runtime: 7.0 secs
+
+--> Starting sp18 (19-Sep-2011 18:21:38)
+        Runtime: 6.9 secs
+
+--> Starting sp19 (19-Sep-2011 18:21:45)
+        Runtime: 7.4 secs
+
+ Total runtime: 1 min, 53.8 secs
+
+
+>> d1_subset=d1([1 2 4:end],:,:,:);
+>> d2_subset=d2([1 2 4:end],:,:,:);
+>> d1_subset_firsthalf=d1_subset(:,:,:,1:8);
+>> numel(d1_subset)
+
+ans =
+
+        1792
+
+>> numel(d1_subset_firsthalf)
+
+ans =
+
+   896
+
+>> d2_subset_firsthalf=d2_subset(:,:,:,1:8);
+>> C=[ones(size(d1_subset_firsthalf(:))) -d1_subset_firsthalf(:) -d2_subset_firsthalf(:)];
+>> subjRawNoNormalization_subset_expanded=repmat(subjRawNoNormalization_subset,[1 1 1 16]);
+>> size(subjRawNoNormalization_subset_expanded)
+
+ans =
+
+    14     2     4    16
+
+>> subjRawNoNormalization_subset_expanded(1,1,1,1:3)
+
+ans(:,:,1,1) =
+
+                 1.8359375
+
+
+ans(:,:,1,2) =
+
+                 1.8359375
+
+
+ans(:,:,1,3) =
+
+                 1.8359375
+
+>> subjRawNoNormalization_subset_expanded(1,2,1,1:3)
+
+ans(:,:,1,1) =
+
+                 2.5546875
+
+
+ans(:,:,1,2) =
+
+                 2.5546875
+
+
+ans(:,:,1,3) =
+
+                 2.5546875
+
+>> d=repmat(subjRawNoNormalization_subset,[1 1 1 8]);
+>> d=d(:);
+>> whos
+  Name                                          Size             Bytes  Class     Attributes
+
+  A                                             0x0                  0  double
+  Aeq                                           1x3                 24  double
+  C                                           896x3              21504  double
+  ans                                           4-D                 24  double
+  b                                             0x0                  0  double
+  beq                                           1x1                  8  double
+  carney                                        1x1               8768  struct
+  cxy                                           4-D              15360  double
+  d                                           896x1               7168  double
+  d1                                            4-D              15360  double
+  d1_subset                                     4-D              14336  double
+  d1_subset_firsthalf                           4-D               7168  double
+  d2                                            4-D              15360  double
+  d2_subset                                     4-D              14336  double
+  d2_subset_firsthalf                           4-D               7168  double
+  hasqi                                         4-D              15360  double
+  kates                                         1x1               6624  struct
+  lb                                            1x1                  8  double
+  options                                       1x1              11786  struct
+  qlin                                          4-D              15360  double
+  qnonlin                                       4-D              15360  double
+  qnonlin_subset                               14x2x4              896  double
+  subjRawNoNormalization_subset                14x2x4              896  double
+  subjRawNoNormalization_subset_expanded        4-D              14336  double
+  ub                                            0x0                  0  double
+  x                                             3x1                 24  double
+
+>> options = optimset(options,'LargeScale','off');
+>> x=lsqlin(C,d,A,b,Aeq,beq,lb,ub,[1 0.400 0.628],options)
+Optimization terminated.
+
+x =
+
+                         5
+          4.61201474328634
+          10.5725798854281
+
+>> x=lsqlin(C,d,A,b,Aeq,beq,lb,ub,[],options)
+Optimization terminated.
+
+x =
+
+                         5
+          4.61201474328635
+           10.572579885428
+
+>> d1_subset_secondhalf=d1_subset(:,:,:,9:end);
+>> d2_subset_secondhalf=d2_subset(:,:,:,9:end);
+>> qlin_new_secondhalf=...
+	[ones(size(d1_subset_secondhalf(:))) -d1_subset_secondhalf(:) -d2_subset_secondhalf(:)]*x;
+>> size(qlin_new_secondhalf)
+
+ans =
+
+   896     1
+
+>> qlin_new_secondhalf=reshape(qlin_new,[14 2 4 8]);
+>> size(qlin_new_secondhalf)
+
+ans =
+
+    14     2     4     8
+
+>> qnonlin_subset_secondhalf=qnonlin([1 2 4:end],:,:,9:end);
+>> hasqi_new_secondhalf=qlin_new_secondhalf.*qnonlin_subset_secondhalf;
+>> size(hasqi_new_secondhalf)
+
+ans =
+
+    14     2     4     8
+
+>> hasqi_new_secondhalf_mean=mean(hasqi_new_secondhalf,4);
+>> pearson(hasqi_new_secondhalf_mean(:),subjRawNoNormalization_subset(:))
+
+ans =
+
+         0.816584352442537
+
+>> qlin_subset_secondhalf_mean=mean(qlin_new_secondhalf,4);
+>> pearson(qlin_subset_secondhalf_mean(:),subjRawNoNormalization_subset(:))
+
+ans =
+
+         0.560819039634905
+
+>> pearson(qnonlin_subset_secondhalf_mean(:),subjRawNoNormalization_subset(:))
+
+ans =
+
+         0.865271729084162
+
+
+
+
+
+------------------------------------------------------------
+-------------- Training with unaggregated data -------------
+------------------------------------------------------------
+>> cd ~/Documents/MATLAB/ObjectiveMeasures/
+>> addpaths_hasqi
+>> [qnonlin,qlin,hasqi,cxy,d1,d2]=computeHasqiFromCarneyNeurograms('/Users/abbiekre/Documents/MATLAB/Data/20110721_DynastatNeurograms79dB/');
+
+--> Starting sp01 (23-Sep-2011 13:10:53)
+        Runtime: 6.9 secs
+
+--> Starting sp02 (23-Sep-2011 13:10:59)
+        Runtime: 7.1 secs
+
+--> Starting sp03 (23-Sep-2011 13:11:07)
+        Runtime: 7.5 secs
+
+--> Starting sp04 (23-Sep-2011 13:11:14)
+        Runtime: 13.3 secs
+
+--> Starting sp06 (23-Sep-2011 13:11:27)
+        Runtime: 8.3 secs
+
+--> Starting sp07 (23-Sep-2011 13:11:36)
+        Runtime: 7.3 secs
+
+--> Starting sp08 (23-Sep-2011 13:11:43)
+        Runtime: 7.7 secs
+
+--> Starting sp09 (23-Sep-2011 13:11:51)
+        Runtime: 7.5 secs
+
+--> Starting sp11 (23-Sep-2011 13:11:58)
+        Runtime: 7.6 secs
+
+--> Starting sp12 (23-Sep-2011 13:12:06)
+        Runtime: 7.4 secs
+
+--> Starting sp13 (23-Sep-2011 13:12:13)
+        Runtime: 7.1 secs
+
+--> Starting sp14 (23-Sep-2011 13:12:20)
+        Runtime: 7.6 secs
+
+--> Starting sp16 (23-Sep-2011 13:12:28)
+        Runtime: 7.5 secs
+
+--> Starting sp17 (23-Sep-2011 13:12:35)
+        Runtime: 7.6 secs
+
+--> Starting sp18 (23-Sep-2011 13:12:43)
+        Runtime: 7.1 secs
+
+--> Starting sp19 (23-Sep-2011 13:12:50)
+        Runtime: 7.8 secs
+
+ Total runtime: 2 mins, 6.0 secs
+>> therandperm=randperm(16);
+>> whos('-file','~/sym/HuLoizouSubj.mat')
+  Name                                Size             Bytes  Class     Attributes
+
+  subjRawNoNormalization_subset      14x2x4              896  double
+
+>> load HuLoizouSubj
+>> whos
+  Name                                Size             Bytes  Class     Attributes
+
+  cxy                                 4-D              15360  double
+  d1                                  4-D              15360  double
+  d2                                  4-D              15360  double
+  hasqi                               4-D              15360  double
+  qlin                                4-D              15360  double
+  qnonlin                             4-D              15360  double
+  subjRawNoNormalization_subset      14x2x4              896  double
+  therandperm                         1x16               128  double
+
+>> d1_training=d1([1 2 4:end],:,:,therandperm(1:8));
+>> d2_training=d2([1 2 4:end],:,:,therandperm(1:8));
+>> C=[ones(size(d1_training(:))) -d1_training(:) -d2_training(:)];
+>> d=repmat(subjRawNoNormalization_subset,[1 1 1 8]);
+>> d(1,1,1,1:2)
+
+ans(:,:,1,1) =
+
+                 1.8359375
+
+
+ans(:,:,1,2) =
+
+                 1.8359375
+
+>> d=d(:);
+>> x=lsqlin(C,d,[],[],[1 0 0],5,0,[],[]);
+Warning: Large-scale algorithm can handle bound constraints only;
+    using medium-scale algorithm instead.
+> In <a href="matlab: opentoline('/Applications/MATLAB_R2009b.app/toolbox/optim/optim/lsqlin.m',286,1)">lsqlin at 286</a>
+Optimization terminated.
+>> x
+
+x =
+
+                         5
+          4.87532778624686
+          9.27405760955204
+
+>> qlin_training=C*x;
+>> size(qlin_training)
+
+ans =
+
+   896     1
+
+>> qlin_training=reshape(qlin_training,[14 2 4 8]);
+>> qlin_training_meanOverSp=mean(qlin_training,4);
+>> size(qlin_training_meanOverSp)
+
+ans =
+
+    14     2     4
+
+>> size(hasqi)
+
+ans =
+
+    15     2     4    16
+
+>> pearson(qlin_training_meanOverSp(:),subjRawNoNormalization_subset(:))
+
+ans =
+
+         0.552305408304563
+
+>> qlin_subset=mean(qlin([1 2 4:end],:,:,:),4);
+>> pearson(qlin_subset(:),subjRawNoNormalization_subset(:))
+
+ans =
+
+         0.534578478296959
+
+>> d1_testing=d1([1 2 4:end],:,:,therandperm(9:end));
+>> d2_testing=d2([1 2 4:end],:,:,therandperm(9:end));
+>> qlin_testing=[ones(size(d1_testing(:))) -d1_testing(:) -d2_testing(:)]*x;
+>> qlin_testing=reshape(qlin_testing,[14 2 4 8]);
+>> qlin_testing_meanOverSp=mean(qlin_testing,4);
+>> pearson(qlin_testing_meanOverSp(:),subjRawNoNormalization_subset(:))
+
+ans =
+
+          0.50787256659426
+
+>> therandperm
+
+therandperm =
+
+     6     3    16    11     7    14     8     5    15     1     2     4    13     9    10    12
+
+
+
+
+
+-----------------------------------------------------------
+------------ Training with the aggregated data ------------
+-----------------------------------------------------------
+>> d1_training_mean=mean(d1_training,4);
+>> d2_training_mean=mean(d2_training,4);
+>> C=[ones(size(d1_training_mean(:))) -d1_training_mean(:) -d2_training_mean(:)];
+>> size(d1_training_mean)
+
+ans =
+
+    14     2     4
+
+>> d=subjRawNoNormalization_subset(:);
+>> x=lsqlin(C,d,[],[],[1 0 0],5,0,[],[])
+Warning: Large-scale algorithm can handle bound constraints only;
+    using medium-scale algorithm instead.
+> In <a href="matlab: opentoline('/Applications/MATLAB_R2009b.app/toolbox/optim/optim/lsqlin.m',286,1)">lsqlin at 286</a>
+Optimization terminated.
+
+x =
+
+                         5
+          2.71704809256961
+          14.2384579798603
+
+>> qlin_training_aggregated=reshape(C*x,[14 2 4]);
+>> d1_testing_mean=mean(d1_testing,4);                                                                               >> d2_testing_mean=mean(d2_testing,4);
+>> C_testing=[ones(size(d1_testing_mean(:))) -d1_testing_mean(:) -d2_testing_mean(:)];
+>> qlin_testing_aggregated=reshape(C_testing*x,[14 2 4]);
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>> qlin_training_aggregated=reshape([ones(size(d1_training(:))) -d1_training(:) -d2_training(:)]*x,[14 2 4 8]);
+>> qlin_testing_aggregated=reshape([ones(size(d1_testing(:))) -d1_testing(:) -d2_testing(:)]*x,[14 2 4 8]);
+>> qlin_training_aggregated_mean=mean(qlin_training_aggregated,4);
+>> qlin_testing_aggregated_mean=mean(qlin_testing_aggregated,4);
+>> pearson(qlin_training_aggregated_mean(:),subjRawNoNormalization_subset(:))
+
+ans =
+
+         0.563050568223071
+
+>> pearson(qlin_testing_aggregated_mean(:),subjRawNoNormalization_subset(:))
+
+ans =
+
+         0.527461094515965
+
+>> size(qlin_testing_aggregated)
+
+ans =
+
+    14     2     4     8
+
+>> qnonlin_testing=qnonlin([1 2 4:end],:,:,therandperm(9:end));
+>> hasqi_testing=qnonlin_testing.*qlin_testing_aggregated;
+>> hasqi_testing_mean=mean(hasqi_testing,4);
+>> pearson(hasqi_testing_mean(:),subjRawNoNormalization_subset(:))
+
+ans =
+
+         0.819495648002726
+
+>> hasqi_subset=mean(hasqi([1 2 4:end],:,:,:),4);
+>> pearson(hasqi_subset(:),subjRawNoNormalization_subset(:))
+
+ans =
+
+         0.849954256855094
+

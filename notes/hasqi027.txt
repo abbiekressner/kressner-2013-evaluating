@@ -1,0 +1,46 @@
+---> MATLAB SIMULATION CODE <---
+>> cd ~/Documents/MATLAB/ObjectiveMeasures
+>> addpaths_hasqi
+>> [qnonlin,qlin,hasqi,cxy,d1,d2]=computeHasqiWithKatesModel;
+
+Total runtime: 1 hour, 0 min, 48.7 secs
+
+>> load ~/sym/HuLoizouSubj.mat
+>> hasqi_subset=mean(hasqi([1:2 4:15],:,:,:),4);
+>> [r_p,stde]=pearson(hasqi_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.842199920061095
+
+
+stde =
+
+         0.251605703581102
+
+>> qlin_subset=mean(qlin([1 2 4:end],:,:,:),4); 
+>> [r_p,stde]=pearson(qlin_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.674031374457497
+
+
+stde =
+
+         0.344721356475944
+
+>> qnonlin_subset=mean(qnonlin([1 2 4:end],:,:,:),4);                 
+>> [r_p,stde]=pearson(qnonlin_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.848263249152893
+
+
+stde =
+
+         0.247130186519694
+
+>> mkdir ~/Documents/MATLAB/Data/20111014_HasqiWithKatesAddLogToLinForQlin
+>> save('~/Documents/MATLAB/Data/20111014_HasqiWithKatesAddLogToLinForQlin/results.mat')

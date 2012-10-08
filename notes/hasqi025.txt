@@ -1,0 +1,284 @@
+----- RUN THE FOLLOWING TO GET THE STARTING VARS ----
+>> [qnonlin,qlin,hasqi,cxy,d1,d2]=computeHasqiFromCarneyNeurograms('/Users/abbiekre/Documents/MATLAB/Data/20110721_DynastatNeurograms79dB/');
+>> therandperm=randperm(16);
+>> load ~/sym/HuLoizouSubj.mat
+>> whos
+  Name                                Size             Bytes  Class     Attributes
+
+  cxy                                 4-D              15360  double
+  d1                                  4-D              15360  double
+  d2                                  4-D              15360  double
+  hasqi                               4-D              15360  double
+  qlin                                4-D              15360  double
+  qnonlin                             4-D              15360  double
+  subjRawNoNormalization_subset      14x2x4              896  double
+  therandperm                         1x16               128  double
+
+--------------------
+----- TRAINING -----
+--------------------
+>> d1_training=d1([1 2 4:end],:,:,therandperm(1:8));
+>> d2_training=d2([1 2 4:end],:,:,therandperm(1:8));
+>> d1_training_mean=mean(d1_training,4);
+>> d2_training_mean=mean(d2_training,4);
+
+>> d1_testing=d1([1 2 4:end],:,:,therandperm(1:8));
+>> d2_testing=d2([1 2 4:end],:,:,therandperm(1:8));
+>> d1_testing_mean=mean(d1_testing,4);
+>> d2_testing_mean=mean(d2_testing,4);
+
+>> cxy_training=cxy([1 2 4:end],:,:,therandperm(1:8));
+>> cxy_testing=cxy([1 2 4:end],:,:,therandperm(9:16));
+>> cxy_training_mean=mean(cxy_training,4);
+>> cxy_testing_mean=mean(cxy_testing,4);
+
+>> C_qnonlin=[ones(size(cxy_training_mean(:))) cxy_training_mean(:) cxy_training_mean(:).^2];
+>> C_qlin=[ones(size(d1_training_mean(:))) d1_training_mean(:) d2_training_mean(:)];
+>> d=subjRawNoNormalization_subset(:);
+
+>> [x_qnonlin,resnorm_qnonlin,~,exitflag,output_qnonlin,lambda]=lsqlin(C_qnonlin,d,[],[],1.^(2:-1:0),5);
+>> x_qnonlin
+>> x_qnonlin =
+
+         0.638228466025246
+          3.45194652377618
+          0.90982501019857
+
+>> [x_qlin,resnorm_qlin,~,exitflag,output_qlin,lambda]=lsqlin(C_qlin,d,[],[],[1 0 0],5);
+>> x_qlin
+
+x_qlin =
+
+                         5
+         -2.71704809256961
+         -14.2384579798603
+
+>> x_qnonlin_unconstrained=C_qnonlin\d
+
+x_qnonlin_unconstrained =
+
+          1.82291054826491
+         -2.32062954433232
+          7.62906802719934
+
+>> x_qlin_unconstrained=C_qlin\d
+
+x_qlin_unconstrained =
+
+          4.50861305956245
+         -2.33443039649365
+         -11.3299329387091
+
+>>
+>> trainedset=@(matrix) matrix([1 2 4:end],:,:,therandperm(1:8));
+>> testingset=@(matrix) matrix([1 2 4:end],:,:,therandperm(9:16));
+>> meanintovec=@(x)reshape(mean(x,4),[],1);
+>> qnonlinmodel=@(x,c) x(1)+x(2).*c+x(3).*(c.^2);
+>> qlinmodel=@(x,d1,d2) x(1)+x(2).*d1+x(3).*d2;
+>>
+>> trained_qnonlin_constrained=qnonlinmodel(x_qnonlin,trainedset(cxy));
+>> testing_qnonlin_constrained=qnonlinmodel(x_qnonlin,testingset(cxy));
+>> trained_qnonlin_unconstrained=qnonlinmodel(x_qnonlin_unconstrained,trainedset(cxy));
+>> testing_qnonlin_unconstrained=qnonlinmodel(x_qnonlin_unconstrained,testingset(cxy));
+>>
+>> trained_qlin_constrained=qlinmodel(x_qlin,trainedset(d1),trainedset(d2));
+>> testing_qlin_constrained=qlinmodel(x_qlin,testingset(d1),testingset(d2));
+>> trained_qlin_unconstrained=qlinmodel(x_qlin_unconstrained,trainedset(d1),trainedset(d2));
+>> testing_qlin_unconstrained=qlinmodel(x_qlin_unconstrained,testingset(d1),testingset(d2));
+>>
+>> trained_hasqi_constrained=trained_qnonlin_constrained.*trained_qlin_constrained;
+>> testing_hasqi_constrained=testing_qnonlin_constrained.*testing_qlin_constrained;
+>> trained_hasqi_unconstrained=trained_qnonlin_unconstrained.*trained_qlin_unconstrained;
+>> testing_hasqi_unconstrained=testing_qnonlin_unconstrained.*testing_qlin_unconstrained;
+>>
+>> getcorr=@(mat) pearson(meanintovec(mat),subjRawNoNormalization_subset(:));
+>>
+>> [getcorr(trained_qlin_constrained) getcorr(trained_qnonlin_constrained) getcorr(trained_hasqi_constrained)]
+
+ans =
+
+         0.563050568223071         0.842137574045979         0.767533516093176
+
+>> [getcorr(trained_qlin_unconstrained) getcorr(trained_qnonlin_unconstrained) getcorr(trained_hasqi_unconstrained)]
+
+ans =
+
+         0.563109172219276         0.848651825736646         0.791594401096441
+
+>> [getcorr(testing_qlin_constrained) getcorr(testing_qnonlin_constrained) getcorr(testing_hasqi_constrained)]
+
+ans =
+
+         0.527461094515965         0.845426653306822         0.761647829928106
+
+>> [getcorr(testing_qlin_unconstrained) getcorr(testing_qnonlin_unconstrained) getcorr(testing_hasqi_unconstrained)]
+
+ans =
+
+         0.526719318333006         0.868084138134601         0.803163832064221
+
+
+
+
+
+--------------------------------------------------------
+----- WHAT ARE THE CORRELATIONS WITHOUT ANY MODEL? -----
+--------------------------------------------------------
+>> pearson(meanintovec(hasqi([1 2 4:end],:,:,:)),subjRawNoNormalization_subset(:))
+
+ans =
+
+         0.849954256855094
+
+>> pearson(meanintovec(trainedset(cxy)),subjRawNoNormalization_subset(:))
+
+ans =
+
+         0.839421350070133
+
+>> pearson(meanintovec(trainedset(d1)),subjRawNoNormalization_subset(:))
+
+ans =
+
+        -0.481826326591367
+
+>> pearson(meanintovec(trainedset(d2)),subjRawNoNormalization_subset(:))
+
+ans =
+
+         -0.54242798107067
+
+
+
+-------------------------------------------------------------
+----- WHAT HAPPENS IF I TRAIN ON THE INDIVID SENTENCES? ----- 
+-------------------------------------------------------------
+>> C_qnonlin_unagg=[ones(numel(trainedset(cxy)),1) reshape(trainedset(cxy),[],1) reshape(trainedset(cxy),[],1).^2];
+>> x_qnonlin_unagg_unconstr=C_qnonlin_unagg\reshape(repmat(subjRawNoNormalization_subset,[1 1 1 8]),[],1)
+
+x_qnonlin_unagg_unconstr =
+
+          1.68209641816338
+        -0.198883258515198
+          3.70915538754062
+
+>> trained_qnonlin_unagg_uncontr=qnonlinmodel(x_qnonlin_unagg_unconstr,trainedset(cxy));
+>> getcorr(trained_qnonlin_unagg_uncontr)
+
+ans =
+
+         0.848993606374507
+
+>> pearson(meanintovec(qnonlin([1 2 4:end],:,:,:)),subjRawNoNormalization_subset(:))
+
+ans =
+
+         0.864185300413215
+
+-----------------
+----- NOTES -----
+-----------------
+I think I have convinced myself that the correlation is not going to increase
+by a ton with training, but I still don't understand why it is getting worse.
+Ugh!
+
+
+-----------------------
+----- LOOK AT MSE -----
+-----------------------
+>> subset = @(mat) mat([1 2 4:end],:,:,:);
+>> meansquareerror(meanintovec(subset(hasqi)),subjRawNoNormalization_subset(:))
+
+ans =
+
+          5.30442291755801
+
+>> meansquareerror(meanintovec(subset(hasqi*5)),subjRawNoNormalization_subset(:))
+
+ans =
+
+          3.11975318680706
+
+>> meansquareerror(meanintovec(trained_hasqi_constrained/5),subjRawNoNormalization_subset(:))
+
+ans =
+
+          1.56467411950124
+
+>> meansquareerror(meanintovec(testing_hasqi_constrained/5),subjRawNoNormalization_subset(:))
+
+ans =
+
+          1.65453421477038
+
+>> meansquareerror(meanintovec(trained_hasqi_unconstrained/5),subjRawNoNormalization_subset(:))
+
+ans =
+
+          1.55672472442801
+
+>> meansquareerror(meanintovec(testing_hasqi_unconstrained/5),subjRawNoNormalization_subset(:))
+
+ans =
+
+          1.59169241756329
+
+
+
+
+
+
+
+>> meansquareerror(meanintovec(subset(qnonlin)),subjRawNoNormalization_subset(:))
+
+ans =
+
+          5.16520194113096
+
+>> meansquareerror(meanintovec(subset(qnonlin*5)),subjRawNoNormalization_subset(:))
+
+ans =
+
+          2.60745486995851
+
+>> getthemse=@(mat) meansquareerror(meanintovec(mat),subjRawNoNormalization_subset(:));
+>> [getthemse(trained_qnonlin_constrained) getthemse(testing_qnonlin_constrained); ...
+getthemse(trained_qnonlin_unconstrained) getthemse(testing_qnonlin_unconstrained)]
+
+ans =
+
+        0.0629281865093185        0.0664605418329374
+        0.0612144421694909        0.0648818239088511
+
+>> getthemse(trained_qnonlin_unagg_uncontr)
+
+ans =
+
+        0.0754267695948953
+
+
+
+
+
+
+
+>> meansquareerror(meanintovec(subset(qlin)),subjRawNoNormalization_subset(:))
+
+ans =
+
+          2.72106744657671
+
+>> meansquareerror(meanintovec(subset(qlin*5)),subjRawNoNormalization_subset(:))   
+
+ans =
+
+          2.86089236926728
+
+>> [getthemse(trained_qlin_constrained) getthemse(testing_qlin_constrained); ...
+getthemse(trained_qlin_unconstrained) getthemse(testing_qlin_unconstrained)]
+
+ans =
+
+         0.151004202374136         0.180013814663708
+         0.147388697280879         0.168205899011026
+

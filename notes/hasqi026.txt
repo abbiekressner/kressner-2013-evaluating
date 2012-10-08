@@ -1,0 +1,537 @@
+>> cd ~/Documents/MATLAB/ObjectiveMeasures/
+>> addpaths_hasqi
+>> [carney_qnonlin,carney_qlin,carney_hasqi,carney_cxy,carney_d1,carney_d2]=computeHasqiFromCarneyNeurograms('/Users/abbiekre/Documents/MATLAB/Data/20110721_DynastatNeurograms79dB/');
+
+--> Starting sp01 (04-Oct-2011 16:56:27)
+	Runtime: 7.1 secs
+
+--> Starting sp02 (04-Oct-2011 16:56:34)
+	Runtime: 6.7 secs
+
+--> Starting sp03 (04-Oct-2011 16:56:40)
+	Runtime: 6.4 secs
+
+--> Starting sp04 (04-Oct-2011 16:56:47)
+	Runtime: 6.3 secs
+
+--> Starting sp06 (04-Oct-2011 16:56:53)
+	Runtime: 6.7 secs
+
+--> Starting sp07 (04-Oct-2011 16:57:00)
+	Runtime: 6.6 secs
+
+--> Starting sp08 (04-Oct-2011 16:57:06)
+	Runtime: 6.8 secs
+
+--> Starting sp09 (04-Oct-2011 16:57:13)
+	Runtime: 6.9 secs
+
+--> Starting sp11 (04-Oct-2011 16:57:20)
+	Runtime: 6.8 secs
+
+--> Starting sp12 (04-Oct-2011 16:57:27)
+	Runtime: 6.7 secs
+
+--> Starting sp13 (04-Oct-2011 16:57:34)
+	Runtime: 6.6 secs
+
+--> Starting sp14 (04-Oct-2011 16:57:40)
+	Runtime: 6.9 secs
+
+--> Starting sp16 (04-Oct-2011 16:57:47)
+	Runtime: 6.5 secs
+
+--> Starting sp17 (04-Oct-2011 16:57:54)
+	Runtime: 6.6 secs
+
+--> Starting sp18 (04-Oct-2011 16:58:00)
+	Runtime: 6.5 secs
+
+--> Starting sp19 (04-Oct-2011 16:58:07)
+	Runtime: 6.7 secs
+
+ Total runtime: 1 min, 47.7 secs
+
+>> [kates_qnonlin,kates_qlin,kates_hasqi,kates_cxy,kates_d1,kates_d2]=computeHasqiWithKatesModel;
+	5% done (05-Oct-2011 13:17:41)
+	10% done (05-Oct-2011 13:20:48)
+	15% done (05-Oct-2011 13:23:40)
+	20% done (05-Oct-2011 13:26:20)
+	25% done (05-Oct-2011 13:29:04)
+	30% done (05-Oct-2011 13:32:10)
+	35% done (05-Oct-2011 13:35:08)
+	40% done (05-Oct-2011 13:38:21)
+	45% done (05-Oct-2011 13:41:41)
+	50% done (05-Oct-2011 13:44:58)
+	55% done (05-Oct-2011 13:48:09)
+	60% done (05-Oct-2011 13:51:16)
+	65% done (05-Oct-2011 13:54:17)
+	70% done (05-Oct-2011 13:57:37)
+	75% done (05-Oct-2011 14:00:24)
+	80% done (05-Oct-2011 14:03:12)
+	85% done (05-Oct-2011 14:05:59)
+	90% done (05-Oct-2011 14:08:52)
+	95% done (05-Oct-2011 14:11:56)
+	100% done (05-Oct-2011 14:15:03)
+
+ Total runtime: 1 hour, 0 min, 34.8 secs
+
+>> whos
+  Name                Size            Bytes  Class     Attributes
+
+  carney_cxy          4-D             15360  double              
+  carney_d1           4-D             15360  double              
+  carney_d2           4-D             15360  double              
+  carney_hasqi        4-D             15360  double              
+  carney_qlin         4-D             15360  double              
+  carney_qnonlin      4-D             15360  double              
+  kates_cxy           4-D             15360  double              
+  kates_d1            4-D             15360  double              
+  kates_d2            4-D             15360  double              
+  kates_hasqi         4-D             15360  double              
+  kates_qlin          4-D             15360  double              
+  kates_qnonlin       4-D             15360  double              
+
+>> save('/Users/abbiekre/Documents/MATLAB/Data/20111005_hasqiResultsWithoutAvgOverSent_bothKatesAndCarney/results.mat')
+>> therandperm=randperm(16);
+
+therandperm =
+
+     6     3    16    11     7    14     8     5    15     1     2     4    13     9    10    12
+
+>> trainingset=@(mat) mat(:,:,:,therandperm(1:8));
+>> testingset=@(mat) mat(:,:,:,therandperm(9:16));
+>> subset=@(mat) mat([1 2 4:end],:,:);
+>> load ~/sym/HuLoizouSubj.mat
+>> Y=subjRawNoNormalization_subset(:);
+>> addpath('~/Documents/MATLAB/ARESLab/');
+>> X_test=[reshape(subset(mean(testingset(kates_hasqi),4)),[],1) reshape(subset(mean(testingset(carney_hasqi),4)),[],1)];
+>> X_train=[reshape(subset(mean(trainingset(kates_hasqi),4)),[],1) reshape(subset(mean(trainingset(carney_hasqi),4)),[],1)];
+
+-------------------------------------
+----- UNCONSTRAINED CUBIC MODEL -----
+-------------------------------------
+>> model_piecewisecubic=aresbuild(X_train,Y)
+Building ARES model...
+Forward phase  .....................
+Backward phase .....................
+Number of basis functions in the final model: 10
+Total effective number of parameters: 23.5
+Highest degree of interactions in the final model: 1
+Execution time: 0.28 seconds
+
+>> model_piecewisecubic = 
+
+          coefs: [10x1 double]
+       knotdims: {9x1 cell}
+      knotsites: {9x1 cell}
+       knotdirs: {9x1 cell}
+        parents: [9x1 double]
+    trainParams: [1x1 struct]
+            MSE: 0.0409723781207178
+            GCV: 0.059423923129412
+             t1: [9x2 double]
+             t2: [9x2 double]
+           minX: [0.108208601050056 0.0626264046924176]
+           maxX: [0.292962800572241 0.200553909824524]
+        endSpan: 8
+
+>> [mse,rmse,rrmse,r2]=arestest(model_piecewisecubic,X_test,Y)
+
+mse =
+
+        0.0554621679529457
+
+
+rmse =
+
+         0.235504072051728
+
+
+rrmse =
+
+         0.506929365657666
+
+
+r2 =
+
+         0.743022618233916
+
+>> aresanova(model_piecewisecubic,X_train,Y)
+Type: piecewise-cubic
+GCV: 0.059
+Total number of basis functions: 10
+Total effective number of parameters: 23.5
+ANOVA decomposition:
+Func.		STD			GCV		#basis	#params		variable(s)
+1		  0.196	      0.535		     5	   12.5		1 
+2		  0.336	      1.905		     4	   10.0		2 
+>> areseq(model_piecewisecubic,3)
+Warning: The model is piecewise-cubic but the basis functions will be shown as piecewise-linear.
+BF1 = max(0, x1 -0.182)
+BF2 = max(0, 0.133 -x2)
+BF3 = max(0, 0.131 -x1)
+BF4 = max(0, x1 -0.184)
+BF5 = max(0, 0.147 -x1)
+BF6 = max(0, 0.206 -x1)
+BF7 = max(0, x2 -0.13)
+BF8 = max(0, x2 -0.101)
+BF9 = max(0, 0.101 -x2)
+y = 1.84 -82.6*BF1 +29.8*BF2 -41.1*BF3 +77.5*BF4 +36.2*BF5 -16.2*BF6 -20*BF7 +35.1*BF8 -37.5*BF9
+>> sqrt(r2)
+
+ans =
+
+         0.861987597494254
+
+--------------------------------------
+----- UNCONSTRAINED LINEAR MODEL -----
+--------------------------------------
+>> params_piecewiselinear=aresparams([],[],false,[],[],[]);
+>> model_piecewiselinear=aresbuild(X_train,Y,params_piecewiselinear);
+Building ARES model...
+Forward phase  .....................
+Backward phase .....................
+Number of basis functions in the final model: 10
+Total effective number of parameters: 23.5
+Highest degree of interactions in the final model: 1
+Execution time: 0.21 seconds
+model_piecewiselinear
+
+>> model_piecewiselinear = 
+
+          coefs: [10x1 double]
+       knotdims: {9x1 cell}
+      knotsites: {9x1 cell}
+       knotdirs: {9x1 cell}
+        parents: [9x1 double]
+    trainParams: [1x1 struct]
+            MSE: 0.038905681981123
+            GCV: 0.0564265088185
+           minX: [0.108208601050056 0.0626264046924176]
+           maxX: [0.292962800572241 0.200553909824524]
+        endSpan: 8
+
+>> [mse,rmse,rrmse,r2]=arestest(model_piecewiselinear,X_test,Y)
+
+mse =
+
+        0.0559191899446492
+
+
+rmse =
+
+          0.23647238727735
+
+
+rrmse =
+
+         0.509013692348091
+
+
+r2 =
+
+         0.740905061002163
+
+>> aresanova(model_piecewiselinear,X_train,Y)
+Type: piecewise-linear
+GCV: 0.056
+Total number of basis functions: 10
+Total effective number of parameters: 23.5
+ANOVA decomposition:
+Func.		STD			GCV		#basis	#params		variable(s)
+Improper null index in null matrix.
+
+Error in ==> aresanovareduce at 86
+        modelReduced.t1(i,:) = [];
+
+Error in ==> aresanova at 66
+        [modelReduced usedBasis] = aresanovareduce(model, combs(j,:), true);
+
+>> areseq(model_piecewiselinear,3);
+BF1 = max(0, x1 -0.182)
+BF2 = max(0, 0.133 -x2)
+BF3 = max(0, 0.131 -x1)
+BF4 = max(0, x1 -0.184)
+BF5 = max(0, 0.147 -x1)
+BF6 = max(0, 0.206 -x1)
+BF7 = max(0, x2 -0.13)
+BF8 = max(0, x2 -0.101)
+BF9 = max(0, 0.101 -x2)
+y = 0.585 -175*BF1 +73.2*BF2 -38.2*BF3 +170*BF4 +37.6*BF5 -19*BF6 -65.5*BF7 +82.3*BF8 -78.8*BF9
+
+-----------------------------------
+----- CONSTRAINED CUBIC MODEL -----
+-----------------------------------
+>> params_piecewisecubic=aresparams(5,[],[],[],[],2);
+>> model_piecewisecubic=aresbuild(X_train,Y,params_piecewisecubic)
+Building ARES model...
+Forward phase  .....
+Backward phase .....
+Number of basis functions in the final model: 3
+Total effective number of parameters: 6.0
+Highest degree of interactions in the final model: 1
+Execution time: 0.04 seconds
+
+>> model_piecewisecubic = 
+
+          coefs: [3x1 double]
+       knotdims: {2x1 cell}
+      knotsites: {2x1 cell}
+       knotdirs: {2x1 cell}
+        parents: [2x1 double]
+    trainParams: [1x1 struct]
+            MSE: 0.0543170378110243
+            GCV: 0.0606401675241624
+             t1: [2x2 double]
+             t2: [2x2 double]
+           minX: [0.108208601050056 0.0626264046924176]
+           maxX: [0.292962800572241 0.200553909824524]
+        endSpan: 8
+
+>> [mse,rmse,rrmse,r2]=arestest(model_piecewisecubic,X_test,Y)
+
+mse =
+
+        0.0497001161925815
+
+
+rmse =
+
+         0.222935228693407
+
+
+rrmse =
+
+         0.479874564714415
+
+
+r2 =
+
+         0.769720402140151
+
+>> sqrt(r2)
+
+ans =
+
+         0.877337108607718
+
+>> figure; aresplot(model_piecewisecubic);
+>> aresanova(model_piecewisecubic,X_train,Y)
+Type: piecewise-cubic
+GCV: 0.061
+Total number of basis functions: 3
+Total effective number of parameters: 6.0
+ANOVA decomposition:
+Func.		STD			GCV		#basis	#params		variable(s)
+1		  0.163	      0.110		     1	    2.5		1 
+2		  0.271	      0.309		     1	    2.5		2 
+>> areseq(model_piecewisecubic)
+Warning: The model is piecewise-cubic but the basis functions will be shown as piecewise-linear.
+BF1 = max(0, x2 -0.0769198818637953)
+BF2 = max(0, 0.181944437874172 -x1)
+y = 2.13862268985092 +7.98455986539339*BF1 -8.69407321479794*BF2
+
+----------------------------------------------------------
+----- DOES THE MAXFINALFUNCS AFFECT THE FINAL MODEL? -----
+----------------------------------------------------------
+>> model_piecewisecubic=aresbuild(X_train,Y,aresparams(5))
+Building ARES model...
+Forward phase  .....
+Backward phase .....
+Number of basis functions in the final model: 3
+Total effective number of parameters: 6.0
+Highest degree of interactions in the final model: 1
+Execution time: 0.02 seconds
+
+model_piecewisecubic =
+
+          coefs: [3x1 double]
+       knotdims: {2x1 cell}
+      knotsites: {2x1 cell}
+       knotdirs: {2x1 cell}
+        parents: [2x1 double]
+    trainParams: [1x1 struct]
+            MSE: 0.0543170378110243
+            GCV: 0.0595120029960248
+             t1: [2x2 double]
+             t2: [2x2 double]
+           minX: [0.108208601050056 0.0626264046924176]
+           maxX: [0.292962800572241 0.200553909824524]
+        endSpan: 8
+>> areseq(model_piecewisecubic)
+Warning: The model is piecewise-cubic but the basis functions will be shown as piecewise-linear.
+BF1 = max(0, x2 -0.0769198818637953)
+BF2 = max(0, 0.181944437874172 -x1)
+y = 2.13862268985092 +7.98455986539339*BF1 -8.69407321479794*BF2
+
+NOTES: No, the model looks the same even when I specify less of the params.
+Also, aresanova produces exactly the same results as the previous model.
+
+----------------------------------------------------------------
+----- DOES THE EQUATION LOOK DIFF IF I USE A LINEAR MODEL? -----
+----------------------------------------------------------------
+>> model=aresbuild(X_train,Y,aresparams(5,[],false)) 
+Building ARES model...
+Forward phase  .....
+Backward phase .....
+Number of basis functions in the final model: 3
+Total effective number of parameters: 6.0
+Highest degree of interactions in the final model: 1
+Execution time: 0.02 seconds
+
+model = 
+
+          coefs: [3x1 double]
+       knotdims: {2x1 cell}
+      knotsites: {2x1 cell}
+       knotdirs: {2x1 cell}
+        parents: [2x1 double]
+    trainParams: [1x1 struct]
+            MSE: 0.0521460550658438
+            GCV: 0.0571333841161625
+           minX: [0.108208601050056 0.0626264046924176]
+           maxX: [0.292962800572241 0.200553909824524]
+        endSpan: 8
+>> areseq(model)
+BF1 = max(0, x2 -0.0769198818637953)
+BF2 = max(0, 0.181944437874172 -x1)
+y = 2.05138468082768 +8.74959713761983*BF1 -7.92334153535949*BF2
+
+NOTES: Nope, still looks similar. However, the actual plots (using aresplot)
+look significantly different. The linear version is very 'choppy' compared to
+the cubic version. What is the point of creating an equation that looks linear,
+when that is not actually the equation for the model?
+
+
+
+
+
+
+
+
+
+
+
+
+
+-----------------------------------------------
+----- EXPLORING THE QNONLIN FIT WITH ARES -----
+-----------------------------------------------
+>> model=aresbuild(reshape(subset(mean(trainingset(carney_cxy),4)),[],1),Y,aresparams(5,[],false,[],2,2))
+Building ARES model...
+Forward phase  .....
+Backward phase .....
+Number of basis functions in the final model: 3
+Total effective number of parameters: 6.0
+Highest degree of interactions in the final model: 1
+Execution time: 0.02 seconds
+
+model =
+
+          coefs: [3x1 double]
+       knotdims: {2x1 cell}
+      knotsites: {2x1 cell}
+       knotdirs: {2x1 cell}
+        parents: [2x1 double]
+    trainParams: [1x1 struct]
+            MSE: 0.0586892393398699
+            GCV: 0.0655213437414853
+           minX: 0.242945429578571
+           maxX: 0.600917508868595
+        endSpan: 7
+
+>> aresplot(model)
+>> [mse,rmse,rrmse,r2]=arestest(model,reshape(subset(mean(testingset(carney_cxy),4)),[],1),Y)                        
+mse =
+
+        0.0621125089827672
+
+
+rmse =
+
+         0.249223813033119
+
+
+rrmse =
+
+         0.536461507212978
+
+
+r2 =
+
+          0.71220905127878
+
+>> sqrt(r2)
+
+ans =
+
+         0.843924790060572
+
+>>
+>>
+>>
+>>
+>>
+>>
+>> model=aresbuild(reshape(subset(mean(trainingset(carney_cxy),4)),[],1),Y,aresparams(5))
+Building ARES model...
+Forward phase  .....
+Backward phase .....
+Number of basis functions in the final model: 3
+Total effective number of parameters: 6.0
+Highest degree of interactions in the final model: 1
+Execution time: 0.03 seconds
+
+model =
+
+          coefs: [3x1 double]
+       knotdims: {2x1 cell}
+      knotsites: {2x1 cell}
+       knotdirs: {2x1 cell}
+        parents: [2x1 double]
+    trainParams: [1x1 struct]
+            MSE: 0.0585890411188902
+            GCV: 0.0641925872823267
+             t1: [2x1 double]
+             t2: [2x1 double]
+           minX: 0.242945429578571
+           maxX: 0.600917508868595
+        endSpan: 7
+
+>> figure; aresplot(model)
+>> [mse,rmse,rrmse,r2]=arestest(model,reshape(subset(mean(testingset(carney_cxy),4)),[],1),Y)
+
+mse =
+
+        0.0613518560564311
+
+
+rmse =
+
+         0.247693068244614
+
+
+rrmse =
+
+         0.533166534527961
+
+
+r2 =
+
+         0.715733446459444
+
+>> sqrt(r2)
+
+ans =
+
+         0.846010311083408
+
+>> areseq(model)
+Warning: The model is piecewise-cubic but the basis functions will be shown as piecewise-linear.
+BF1 = max(0, x1 -0.470258713375628)
+BF2 = max(0, 0.470258713375628 -x1)
+y = 2.33429154435896 +6.59708643386192*BF1 -3.02570966862701*BF2
+
+NOTES: the plots of the linear and cubic models look nearly the same, except
+for slight differences near the know of the hinge function (x~0.47).

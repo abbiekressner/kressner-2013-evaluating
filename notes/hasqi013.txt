@@ -1,0 +1,3 @@
+>> [r,stde]=pearson(sortedPemoQ_subset(:),subjRawNoNormalization_subset(:))
+	r =         0.208925893738839
+	stde =            0.456359312591306

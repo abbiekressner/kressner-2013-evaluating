@@ -1,0 +1,52 @@
+I have run the following tests:
+
+Kates model, resamp to 16kHz, nchan=22  : r~0.82
+Carney model, 8kHz, nchan=32            : r~0.56
+Carney model, resamp to 16kHz, nchan=22 : r~0.58
+
+Currently, I am running Kates model, resamp to 16kHz, with nchan=32. I also want
+to try Kates model without resampling (drop cfreq<4kHz) to see how robust the
+model is. Then, I will look at training parameters and/or look at using
+different model outputs to see if I can get better performance out of the Carney
+model.
+
+>> r = calcCorrelationQualmetricIndividLoizouData(...
+'~/sym/subj_normalizeRawOvrlByZscoresPerSubjAndExp.mat',...
+'~/sym/QnonlinQlinHASQI_CarneyModel8k_nchan32.mat','qnonlin')
+r =	0.557473516099114
+>> r = calcCorrelationQualmetricIndividLoizouData(...
+'~/sym/subj_normalizeRawOvrlByZscoresPerSubjAndExp.mat',...
+'~/sym/QnonlinQlinHASQI_CarneyModel8k_nchan32.mat','hasqi')
+r =	0.562714132738131
+>> r = calcCorrelationQualmetricIndividLoizouData(...
+'~/sym/subj_normalizeRawOvrlByZscoresPerSubjAndExp.mat',...
+'~/sym/QnonlinQlinHASQI_KatesModelResampTo16k_nchan22.mat','qnonlin')
+r =	0.817248986165366
+>> r = calcCorrelationQualmetricIndividLoizouData(...
+'~/sym/subj_normalizeRawOvrlByZscoresPerSubjAndExp.mat',...
+'~/sym/QnonlinQlinHASQI_KatesModelResampTo16k_nchan22.mat','hasqi')
+r =	0.807225067809989
+>> r = calcCorrelationQualmetricIndividLoizouData('/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/subj_normalizeRawOvrlByZscoresPerSubjAndExp.mat',...
+'/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCodeWithCarneyModel/QnonlinQlinHASQI_CarneyModelResampTo16k_nchan22.mat','qnonlin')
+r =	 0.579758897784275
+>> r = calcCorrelationQualmetricIndividLoizouData('/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/subj_normalizeRawOvrlByZscoresPerSubjAndExp.mat',...
+'/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/QnonlinQlinHASQI_KatesModelResampTo16kHz_nchan32.mat','qnonlin')
+r =	  0.80834211595204
+>> r = calcCorrelationQualmetricIndividLoizouData('/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/subj_normalizeRawOvrlByZscoresPerSubjAndExp.mat',...
+'/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/QnonlinQlinHASQI_KatesModelResampTo16kHz_nchan32.mat','hasqi')
+r =	 0.809727496176126
+>> r = calcCorrelationQualmetricIndividLoizouData('/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/subj_normalizeRawOvrlByZscoresPerSubjAndExp.mat',...
+'/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/QnonlinQlinHASQI_KatesModel8kHz_nchan32_chopTo25.mat','qnonlin')
+r =	 0.544613168269629  <-- WHY IS THIS SO BAD???  (NOT SURE HOW I GOT THIS TO RUN WITHOUT AN ERROR BC THE BUTTER FILTER SHOULD HAVE PRODUCED AN ERROR- 5000/4000 IS GREATER THAN 1)
+>> r = calcCorrelationQualmetricIndividLoizouData('/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/subj_normalizeRawOvrlByZscoresPerSubjAndExp.mat',...
+'/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/QnonlinQlinHASQI_KatesModel8kHz_nchan32_chopTo25.mat','hasqi')
+r =	 0.553617970096017  <-- WHY IS THIS SO BAD???  (NOT SURE HOW I GOT THIS TO RUN WITHOUT AN ERROR BC THE BUTTER FILTER SHOULD HAVE PRODUCED AN ERROR- 5000/4000 IS GREATER THAN 1)
+Ah ha, just figured it out. I did, in fact, not resample, but I told Qual_metric that the sampling rate was 16k anyway. Oops.
+-----------------------------------------------------------------------------------------------------
+NOTE: rerunning kates model resamp to 16kHz with nchan=22 to see if I still get the same correlations
+-----------------------------------------------------------------------------------------------------
+>> r = calcCorrelationQualmetricIndividLoizouData('/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/subj_normalizeRawOvrlByZscoresPerSubjAndExp.mat',...'/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/QnonlinQlinHASQI_KatesModelResampTo16kHz_nchan22_recheck.mat','qnonlin')
+r =         0.817248986165366
+>> r = calcCorrelationQualmetricIndividLoizouData('/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/subj_normalizeRawOvrlByZscoresPerSubjAndExp.mat',...
+'/Volumes/abbieWD2_Data/HASQIofHuLoizou/usingKatesCode/QnonlinQlinHASQI_KatesModelResampTo16kHz_nchan22_recheck.mat','hasqi')
+r =         0.817168231648437

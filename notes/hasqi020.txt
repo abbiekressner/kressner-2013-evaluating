@@ -1,0 +1,51 @@
+--> SUMMARY OF RESULTS <--
+Total runtime: 1 hour, 0 min, 41.1 secs
+			Kates (r_p)
+hasqi		0.847538141486137
+qnonlin		0.848263249152893
+qlin		0.65228233193857
+
+
+--> MATLAB SIMULATION CODE <--
+>> cd ~/Documents/MATLAB/ObjectiveMeasures
+>> addpaths_hasqi
+>> [qnonlin,qlin,hasqi,cxy,d1,d2]=computeHasqiWithKatesModel;
+	% assumes the symbolic links ~/sym/noizeus and ~/sym/Dynastat exist (link to paths of wav files)
+>> hasqi_subset=hasqi([1:2 4:15],:,:);
+>> load ~/sym/HuLoizouSubj.mat
+>> [r_p,stde]=pearson(hasqi_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.847538141486137
+
+
+stde =
+
+         0.247671368607532
+
+>> qlin_subset=qlin([1:2 4:15],:,:);
+>> [r_p,stde]=pearson(qlin_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+          0.65228233193857
+
+
+stde =
+
+         0.353715426864785
+
+>> qnonlin_subset=qnonlin([1:2 4:15],:,:);
+>> [r_p,stde]=pearson(qnonlin_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.848263249152893
+
+
+stde =
+
+         0.247130186519694
+
+>> save('~/Documents/MATLAB/Data/20110908_hasqiResultsWithKatesModel/hasqiResults.mat')

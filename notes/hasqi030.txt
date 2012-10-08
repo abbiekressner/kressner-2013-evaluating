@@ -1,0 +1,48 @@
+>> zeroToOneScores=getSortNormalizeAndAvgIndividLoizouScores(3);
+	Warning: Could not start Excel server for import, 'basic' mode will be used. 
+	Refer to HELP XLSREAD for more information. 
+	> In xlsread at 176
+	  In getSortNormalizeAndAvgIndividLoizouScores at 38
+
+>> zeroToOneScores_subset=zeroToOneScores([1 2 4:end],:,:);
+>> clear zeroToOneScores
+>> save('~/Documents/MATLAB/Data/subj_zeroToOneNormalizationRaw_correctSubset.mat','zeroToOneScores_subset')
+>> % CREATED A SYM LINK TO THIS MAT FILE AT ~/sym/HuLoizouSubj_zeroToOne.mat
+>> 
+>> cd ~/Documents/MATLAB/ObjectiveMeasures/
+>> addpaths_hasqi
+
+>> load /Users/abbiekre/Documents/MATLAB/Data/20111014_HasqiWithKatesAddLogToLinForQlin/results.mat
+>> [r,stde]=pearson(hasqi_subset(:),zeroToOneScores_subset(:))
+
+r =
+
+         0.847072793062781
+
+
+stde =
+
+        0.0755291061365727
+
+>> [r,stde]=pearson(qlin_subset(:),zeroToOneScores_subset(:))
+
+r =
+
+          0.67758497202398
+
+
+stde =
+
+           0.1045152978843
+
+>> [r,stde]=pearson(qnonlin_subset(:),zeroToOneScores_subset(:))
+
+r =
+
+         0.853120521410833
+
+
+stde =
+
+        0.0741416684234952
+

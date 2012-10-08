@@ -1,0 +1,34 @@
+Runtime: 1 days 5h 47m 8s
+
+r=0.80
+stde=0.28
+
+----- Matlab -----
+>> out=getAllOutputArguments(job);
+>> qnonlin=out{1};qlin=out{2};hasqi=out{3};cxy=out{4};
+>> save('/Volumes/abbieWD2_Data/hasqiLoizouData/usingKatesCodeWithCarneyModel/usingVihc/carneyModel_noResamp_vihcAmpAdjustedCorrectly_nchan32choppedTo25.mat','qnonlin','qlin','hasqi','cxy');
+
+>> addpath('~/Documents/MATLAB/ObjectiveMeasures/HASQI/subjScores/');
+>> subjRawNoNormalization=getSortNormalizeAndAvgIndividLoizouScores(6);
+Warning: Could not start Excel server for import, 'basic' mode will be used. Refer to HELP XLSREAD for more information.
+> In <a href="matlab: opentoline('/Applications/MATLAB_R2009b.app/toolbox/matlab/iofun/xlsread.m',176,1)">xlsread at 176</a>
+  In <a href="matlab: opentoline('/Users/abbiekre/Documents/MATLAB/ObjectiveMeasures/HASQI/subjScores/getSortNormalizeAndAvgIndividLoizouScores.m',38,1)">getSortNormalizeAndAvgIndividLoizouScores at 38</a>
+
+>> subjRawNoNormalization_subset=subjRawNoNormalization([1:2 4:15],:,:);
+>> size(hasqi)
+
+ans =
+
+    15     2     4
+
+>> hasqi_subset=hasqi([1 2 4:15],:,:);
+>> [r,stde]=pearson(hasqi_subset(:),subjRawNoNormalization_subset(:))
+
+r =
+
+         0.801232602009511
+
+stde =
+
+         0.279226073035514
+--- end Matlab ---

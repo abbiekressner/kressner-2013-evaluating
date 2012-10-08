@@ -1,0 +1,161 @@
+--> SUMMARY OF RESULTS <--
+			Carney (r_p)
+hasqi		0.849954256855094
+qnonlin		0.864185300413215
+qlin		0.534578478296959
+
+
+--> ACTUAL MATLAB SESSION <-- 
+>> cd ~/Documents/MATLAB/ObjectiveMeasures/
+>> addpaths_hasqi
+>> [qnonlin,qlin,hasqi,cxy,d1,d2]=computeQualmetricForLoizouData('~/Documents/MATLAB/Data/20110721_DynastatNeurograms79dB/');
+
+--> Starting sp01 (07-Sep-2011 15:31:08)
+        Runtime: 7.8 secs
+
+--> Starting sp02 (07-Sep-2011 15:31:16)
+        Runtime: 7.1 secs
+
+--> Starting sp03 (07-Sep-2011 15:31:23)
+        Runtime: 6.8 secs
+
+--> Starting sp04 (07-Sep-2011 15:31:30)
+        Runtime: 6.7 secs
+
+--> Starting sp06 (07-Sep-2011 15:31:37)
+        Runtime: 7.4 secs
+
+--> Starting sp07 (07-Sep-2011 15:31:44)
+        Runtime: 7.3 secs
+
+--> Starting sp08 (07-Sep-2011 15:31:51)
+        Runtime: 7.5 secs
+
+--> Starting sp09 (07-Sep-2011 15:31:59)
+        Runtime: 7.4 secs
+
+--> Starting sp11 (07-Sep-2011 15:32:06)
+        Runtime: 7.3 secs
+
+--> Starting sp12 (07-Sep-2011 15:32:14)
+        Runtime: 7.2 secs
+
+--> Starting sp13 (07-Sep-2011 15:32:21)
+        Runtime: 7.0 secs
+
+--> Starting sp14 (07-Sep-2011 15:32:28)
+        Runtime: 7.3 secs
+
+--> Starting sp16 (07-Sep-2011 15:32:35)
+        Runtime: 6.8 secs
+
+--> Starting sp17 (07-Sep-2011 15:32:42)
+        Runtime: 7.2 secs
+
+--> Starting sp18 (07-Sep-2011 15:32:49)
+        Runtime: 6.9 secs
+
+--> Starting sp19 (07-Sep-2011 15:32:56)
+        Runtime: 7.1 secs
+
+ Total runtime: 1 min, 56.0 secs
+
+>> ls ~/Documents/MATLAB/Data/20110718_DynastatHasqi/
+hasqiCarneyNeurograms.mat
+
+>> whos('-file','~/Documents/MATLAB/Data/20110718_DynastatHasqi/hasqiCarneyNeurograms.mat')
+  Name          Size             Bytes  Class     Attributes
+
+  cxy          15x2x4              960  double
+  d1           15x2x4              960  double
+  d2           15x2x4              960  double
+  hasqi        15x2x4              960  double
+  qlin         15x2x4              960  double
+  qnonlin      15x2x4              960  double
+
+>> whos
+  Name          Size             Bytes  Class     Attributes
+
+  cxy          15x2x4              960  double
+  d1           15x2x4              960  double
+  d2           15x2x4              960  double
+  hasqi        15x2x4              960  double
+  qlin         15x2x4              960  double
+  qnonlin      15x2x4              960  double
+
+>> mkdir ~/Documents/MATLAB/Data/20110907_hasqiResultsFromDynastatNeurograms79dB
+>> save ~/Documents/MATLAB/Data/20110907_hasqiResultsFromDynastatNeurograms79dB/hasqiResults.mat
+>> whos('-file','~/Documents/MATLAB/Data/20110907_hasqiResultsFromDynastatNeurograms79dB/hasqiResults.mat')
+  Name          Size             Bytes  Class     Attributes
+
+  cxy          15x2x4              960  double
+  d1           15x2x4              960  double
+  d2           15x2x4              960  double
+  hasqi        15x2x4              960  double
+  qlin         15x2x4              960  double
+  qnonlin      15x2x4              960  double
+
+>> hasqi_subset=hasqi([1:2 4:15],:,:);
+>> ls ~/sym
+Dynastat                                        sortedAggregatedSubjectiveScores.mat
+HuLoizouRateFuncs                               sortingInfo.mat
+HuLoizouSubj.mat                                subj_normalizeRawOvrlByZscoresPerSubjAndExp.mat
+hasqiLoizouData                                 variableLookupByExpAndCond.mat
+noizeus
+
+>> whos('-file','~/sym/HuLoizouSubj.mat')
+  Name                                Size             Bytes  Class     Attributes
+
+  subjRawNoNormalization_subset      14x2x4              896  double
+
+>> load ~/sym/HuLoizouSubj.mat
+>> [r_p,stde]=pearson(hasqi_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.849954256855094
+
+
+stde =
+
+         0.245861669964909
+
+>> qlin_subset=qlin([1:2 4:15],:,:);
+>> [r_p,stde]=pearson(qlin_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.534578478296959
+
+
+stde =
+
+         0.394381264590787
+
+>> qnonlin_subset=qnonlin([1:2 4:15],:,:);
+>> [r_p,stde]=pearson(qnonlin_subset(:),subjRawNoNormalization_subset(:))
+
+r_p =
+
+         0.864185300413215
+
+
+stde =
+
+         0.234809909426671
+
+>> whos
+  Name                                Size             Bytes  Class     Attributes
+
+  cxy                                15x2x4              960  double              
+  d1                                 15x2x4              960  double              
+  d2                                 15x2x4              960  double              
+  hasqi                              15x2x4              960  double              
+  hasqi_subset                       14x2x4              896  double              
+  qlin                               15x2x4              960  double              
+  qlin_subset                        14x2x4              896  double              
+  qnonlin                            15x2x4              960  double              
+  qnonlin_subset                     14x2x4              896  double              
+  subjRawNoNormalization_subset      14x2x4              896  double              
+
+>> save ~/Documents/MATLAB/Data/20110907_hasqiResultsFromDynastatNeurograms79dB/hasqiResults.mat

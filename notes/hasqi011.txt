@@ -1,0 +1,80 @@
+>> subjRawNoNormalization=getSortNormalizeAndAvgIndividLoizouScores(6);
+Warning: Could not start Excel server for import, 'basic' mode will be used. Refer to HELP XLSREAD for more information.
+> In <a href="matlab: opentoline('/Applications/MATLAB_R2009b.app/toolbox/matlab/iofun/xlsread.m',176,1)">xlsread at 176</a>
+  In <a href="matlab: opentoline('/Users/abbiekre/Documents/MATLAB/ObjectiveMeasures/HASQI/subjScores/getSortNormalizeAndAvgIndividLoizouScores.m',38,1)">getSortNormalizeAndAvgIndividLoizouScores at 38</a>
+>> subjRawNoNormalization_subset=subjRawNoNormalization([1:2 4:15],:,:);
+>> [r,stde]=pearson(metric_pesq_subset(:),subjRawNoNormalization_subset(:))
+
+r =
+
+0.888794632291628
+
+stde =
+
+0.213871905075339
+
+>> time=tic; metric_llr = computeStandardmetricForLoizouData('~/sym/Dynastat/','~/sym/noizeus/',false,@comp_llr); secs2hms(toc(time))
+
+ans =
+
+8 mins, 4.8 secs
+
+>> size(metric_llr)
+
+ans =
+
+15     2     4
+
+>> metric_llr_subset=metric_llr([1 2 4:15],:,:);
+>> size(metric_llr_subset)
+
+ans =
+
+14     2     4
+
+>> [r,stde]=pearson(metric_llr_subset(:),subjRawNoNormalization_subset(:))
+
+r =
+
+-0.862985021476328
+
+stde =
+
+	 0.235769269477359
+
+>> time=tic; metric_fwseg = computeStandardmetricForLoizouData('~/sym/Dynastat/','~/sym/noizeus/',false,@comp_fwseg); secs2hms(toc(time))
+
+ans =
+
+5 mins, 44.8 secs
+
+>> metric_fwseg_subset=metric_fwseg([1 2 4:15],:,:);
+>> [r,stde]=pearson(metric_fwseg_subset(:),subjRawNoNormalization_subset(:))
+
+r =
+
+0.844341137762135
+
+stde =
+
+0.250038016610263
+
+>> metric_fwseg25=metric_fwseg;
+>> metric_fwseg25_subset=metric_fwseg_subset;
+>> clear metric_fwseg metric_fwseg_subset
+>> time=tic; metric_fwseg13 = computeStandardmetricForLoizouData('~/sym/Dynastat/','~/sym/noizeus/',false,@comp_fwseg); secs2hms(toc(time))
+
+ans =
+
+3 mins, 40.9 secs
+
+>> metric_fwseg13_subset=metric_fwseg13([1 2 4:15],:,:);
+>> [r,stde]=pearson(metric_fwseg13_subset(:),subjRawNoNormalization_subset(:))
+
+r =
+
+0.851602661704588
+
+stde =
+
+ 0.244616330308766
